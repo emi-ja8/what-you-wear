@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="What You Wear macht Nachhaltigkeitsdaten von Kleidung sichtbar, vergleichbar und verständlich." />
+    <meta name="theme-color" content="#173f35" />
+    <title>What You Wear — Ein Scan. Volle Transparenz.</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <div id="landingView" class="landing-view">
+      <header class="site-header" id="top">
+        <a class="brand" href="#top" aria-label="What You Wear Startseite">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 44 44"><path d="M8 27.5 22 19l14 8.5M22 19v-3.5c0-2.8 4.2-2.5 4.2-5.3 0-2.1-1.7-3.6-4-3.6-2 0-3.5 1-4.2 2.7"/></svg>
+          </span>
+          <span><strong>WHAT YOU WEAR</strong><small>TRANSPARENZLABEL</small></span>
+        </a>
+        <nav class="desktop-nav" aria-label="Hauptnavigation">
+          <a href="#warum">Warum</a>
+          <a href="#loesung">Lösung</a>
+          <a href="#score">Score</a>
+          <a href="#marken">Für Marken</a>
+        </nav>
+        <div class="header-actions">
+          <button class="text-button" data-action="open-dashboard">Dashboard</button>
+          <a class="button button-small button-dark" href="#kontakt">Pilotpartner werden <span>↗</span></a>
+          <button class="menu-button" id="menuButton" aria-label="Menü öffnen" aria-expanded="false">☰</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero section-pad">
+          <div class="hero-copy reveal">
+            <div class="eyebrow"><span class="pulse-dot"></span> Transparenz beginnt am Produkt</div>
+            <h1>Know what<br />you <em>wear.</em></h1>
+            <p class="hero-lead">Ein Label, das nicht einfach behauptet, sondern erklärt. What You Wear übersetzt Materialien, Produktion, soziale Standards und Lieferketten in einen Score, den Menschen verstehen.</p>
+            <div class="hero-actions">
+              <button class="button button-dark" data-action="open-dashboard">Dashboard entdecken <span>↗</span></button>
+              <a class="button button-ghost" href="#loesung"><span class="play-icon">▶</span> So funktioniert’s</a>
+            </div>
+            <div class="hero-proof">
+              <span class="mini-avatars"><i>WY</i><i>QR</i><i>EU</i></span>
+              <span><strong>Von Daten zu Vertrauen.</strong><br />Konzipiert für Mode, gemacht für Menschen.</span>
+            </div>
+          </div>
+
+          <div class="hero-visual reveal delay-1" aria-label="Vorschau des What You Wear Labels">
+            <div class="fabric-grain"></div>
+            <div class="hanger-line"><span></span></div>
+            <div class="label-card">
+              <div class="label-brand">WHAT YOU WEAR</div>
+              <div class="label-hanger"><svg viewBox="0 0 80 38"><path d="M4 34 40 12l36 22M40 12V7c0-6 10-5 10-12 0-5-4-8-10-8-5 0-9 3-10 7"/></svg></div>
+              <div class="label-title">TRANSPARENZ LABEL</div>
+              <div class="label-score-row"><div class="grade big">B</div><div><b>GUT</b><small>Bewusst<br />bessere Wahl.</small></div></div>
+              <div class="label-categories">
+                <span><i>◒</i><b>A</b><small>Material</small></span>
+                <span><i>♙</i><b>C</b><small>Fairness</small></span>
+                <span><i>◎</i><b>B</b><small>Umwelt</small></span>
+                <span><i>◇</i><b>B</b><small>Haltbarkeit</small></span>
+              </div>
+              <div class="label-footer"><span>▣<small>TEILWEISE<br />TRANSPARENT</small></span><b>82<small>/100</small></b></div>
+            </div>
+            <div class="scan-card">
+              <span class="scan-icon">⌁</span>
+              <div><b>Scan it. Know it.</b><small>Alle Fakten hinter dem Score.</small></div>
+              <span>→</span>
+            </div>
+            <div class="visual-caption">Der Score am Kleidungsstück.<br /><strong>Die Belege dahinter digital.</strong></div>
+          </div>
+        </section>
+
+        <section class="trust-strip">
+          <p>Ein gemeinsamer Rahmen für</p>
+          <div><span>MODEMARKEN</span><span>HERSTELLER</span><span>HANDEL</span><span>KONSUMENT:INNEN</span><span>PARTNER</span></div>
+        </section>
+
+        <section class="facts-section section-pad" id="warum">
+          <div class="section-kicker">01 — Warum jetzt</div>
+          <div class="split-heading">
+            <h2>Was wir tragen,<br />wissen wir oft <em>nicht.</em></h2>
+            <p>Nachhaltigkeitsinformationen sind vorhanden, aber über Labels, PDFs, Lieferanten und Systeme verteilt. Gleichzeitig wächst der Anspruch an überprüfbare Aussagen und strukturierte Produktdaten.</p>
+          </div>
+          <div class="fact-grid">
+            <article class="fact-card dark reveal"><span class="fact-index">01</span><strong>19 kg</strong><h3>Textilien pro Person</h3><p>So viel Kleidung, Schuhe und Haushaltstextilien wurden 2022 in der EU durchschnittlich konsumiert – etwa ein großer Koffer.</p><a href="https://www.eea.europa.eu/en/analysis/publications/circularity-of-the-eu-textiles-value-chain-in-numbers" target="_blank" rel="noreferrer">Quelle: EEA, 2025 ↗</a></article>
+            <article class="fact-card reveal delay-1"><span class="fact-index">02</span><strong>53,3 %</strong><h3>unklare Umweltclaims</h3><p>Mehr als die Hälfte der untersuchten Umweltaussagen war laut einer EU-Kommissionsstudie vage, irreführend oder unbegründet.</p><a href="https://environment.ec.europa.eu/topics/circular-economy-topics/eu-ecolabel/consumers_en" target="_blank" rel="noreferrer">Quelle: EU-Kommission ↗</a></article>
+            <article class="fact-card accent reveal delay-2"><span class="fact-index">03</span><strong>230+</strong><h3>Umweltlabels in Europa</h3><p>Viele Zeichen, wenig Vergleichbarkeit. What You Wear zeigt deshalb nicht nur ein Ergebnis, sondern Datenlage und Nachweise.</p><a href="https://environment.ec.europa.eu/topics/circular-economy-topics/eu-ecolabel/consumers_en" target="_blank" rel="noreferrer">Quelle: EU-Kommission ↗</a></article>
+          </div>
+          <div class="source-note">Stand der recherchierten Fakten: Juli 2026. What You Wear ist ein Hochschulprojekt und aktuell kein akkreditiertes Zertifizierungssystem.</div>
+        </section>
+
+        <section class="manifesto-section">
+          <div class="manifesto-media reveal">
+            <div class="photo-overlay"></div>
+            <div class="material-tag tag-one">95 % Bio-Baumwolle<span>Material</span></div>
+            <div class="material-tag tag-two">Portugal<span>Konfektion</span></div>
+            <blockquote>„Vertrauen entsteht nicht durch mehr Claims, sondern durch bessere Belege.“</blockquote>
+          </div>
+          <div class="manifesto-copy reveal delay-1">
+            <span class="section-kicker light">Unser Standpunkt</span>
+            <h2>Kein grünes Versprechen.<br /><em>Ein offener Blick.</em></h2>
+            <p>What You Wear ersetzt bestehende Zertifikate nicht. Es führt sie mit Produkt-, Produktions- und Lieferkettendaten zusammen und übersetzt die Datenlage in eine verständliche Orientierung.</p>
+            <ul class="check-list">
+              <li><span>✓</span><div><b>Nachvollziehbar statt pauschal</b><small>Jeder Teilscore zeigt Daten und akzeptierte Nachweise.</small></div></li>
+              <li><span>✓</span><div><b>Produktbezogen statt markenweit</b><small>Bewertet wird das konkrete Kleidungsstück.</small></div></li>
+              <li><span>✓</span><div><b>Verbesserbar statt endgültig</b><small>Fehlende Daten werden sichtbar und priorisiert.</small></div></li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="how-section section-pad" id="loesung">
+          <div class="section-kicker">02 — So funktioniert’s</div>
+          <div class="split-heading align-end">
+            <h2>Von der Lieferkette<br />bis zum <em>Hangtag.</em></h2>
+            <p>Ein durchgängiger Workflow verbindet Teams, Nachweise und Konsument:innen – ohne die Komplexität zu verstecken.</p>
+          </div>
+          <div class="steps-grid">
+            <article><span>01</span><div class="step-icon">⌁</div><h3>Daten bündeln</h3><p>Materialmix, Herkunft, CO₂e, Audits und Lieferstufen strukturiert erfassen oder importieren.</p></article>
+            <article><span>02</span><div class="step-icon">▤</div><h3>Nachweise verknüpfen</h3><p>Zertifikate und Dokumente direkt den relevanten Produktdaten zuordnen.</p></article>
+            <article><span>03</span><div class="step-icon">◔</div><h3>Score erklären</h3><p>Gewichtete Teilwerte ergeben eine Orientierung von A bis E – mit sichtbarer Datenvollständigkeit.</p></article>
+            <article><span>04</span><div class="step-icon">⌗</div><h3>Transparenz teilen</h3><p>Label, QR-Profil, Produktpass und Bericht aus einem Datenstand veröffentlichen.</p></article>
+          </div>
+          <div class="product-pass-demo reveal">
+            <div class="pass-copy">
+              <span class="live-pill"><i></i> LIVE PRODUKTPROFIL</span>
+              <h3>Hoodie Classic</h3>
+              <p>Was hinter dem B steckt, wird mit einem Scan sichtbar.</p>
+              <div class="pass-meta"><span>SKU-001-HOOD-CL</span><span>Aktualisiert: 11.07.2026</span></div>
+              <button class="button button-light" id="scanDemoButton">Produkt scannen <span>⌗</span></button>
+            </div>
+            <div class="phone-shell" id="phoneShell">
+              <div class="phone-notch"></div>
+              <div class="phone-screen">
+                <div class="phone-top"><span>WHAT YOU WEAR</span><span>•••</span></div>
+                <div class="phone-product"><div class="hoodie-shape"><span></span></div><div><small>KNOW YOUR CLOTHES</small><b>Hoodie Classic</b><span>Studio North · Portugal</span></div></div>
+                <div class="phone-score"><div class="grade">B</div><div><small>GESAMTSCORE</small><b>82 / 100</b><span>Gute Wahl · Daten zu 91 % vollständig</span></div></div>
+                <div class="phone-bars">
+                  <div><span>Material</span><i><b style="width:92%"></b></i><strong>A</strong></div>
+                  <div><span>Produktion</span><i><b style="width:80%"></b></i><strong>B</strong></div>
+                  <div><span>Soziales</span><i><b style="width:68%"></b></i><strong>C</strong></div>
+                  <div><span>Transparenz</span><i><b style="width:91%"></b></i><strong>B</strong></div>
+                </div>
+              </div>
+            </div>
+            <img class="original-concept-mini" src="assets/concept-app.png" alt="Originale App-Konzeptansicht aus dem Konzeptdokument" />
+          </div>
+        </section>
+
+        <section class="score-section section-pad" id="score">
+          <div class="score-intro">
+            <span class="section-kicker light">03 — Bewertungsrahmen</span>
+            <h2>Ein Buchstabe.<br /><em>Fünf Perspektiven.</em></h2>
+            <p>Die Demo nutzt die Gewichtung aus dem Konzept. Jede Kategorie bleibt einzeln sichtbar, damit ein guter Gesamtwert keine Schwäche verdeckt.</p>
+            <div class="grade-scale"><span class="a">A</span><span class="b active">B</span><span class="c">C</span><span class="d">D</span><span class="e">E</span></div>
+            <small>Beispielgewichtung – vor einem realen Einsatz fachlich und rechtlich zu validieren.</small>
+          </div>
+          <div class="score-accordion">
+            <button class="score-row active" data-score="material"><span>01</span><div><b>Materialien & Rohstoffe</b><small>Materialmix, Bio- und Recyclinganteil, Nachweise</small></div><strong>30 %</strong><i>−</i></button>
+            <div class="score-detail active" data-detail="material"><p>Bewertet wird nicht nur die Faserbezeichnung, sondern auch Herkunft, Anteil und belegte Standards. Beispiel: 95 % Bio-Baumwolle mit gültigem GOTS-Nachweis.</p><div><span>Bio-Anteil</span><b>95 %</b></div></div>
+            <button class="score-row" data-score="production"><span>02</span><div><b>Produktion & CO₂</b><small>Energie, Emissionen, Standort und Transport</small></div><strong>30 %</strong><i>+</i></button>
+            <div class="score-detail" data-detail="production"><p>Produktbezogene CO₂e-Daten, Energiemix und Transportwege bilden den Produktionswert. Fehlende Primärdaten senken die Datenvollständigkeit.</p><div><span>Erneuerbare Energie</span><b>75 %</b></div></div>
+            <button class="score-row" data-score="social"><span>03</span><div><b>Soziale Standards</b><small>Audits, Arbeitsschutz und Code of Conduct</small></div><strong>25 %</strong><i>+</i></button>
+            <div class="score-detail" data-detail="social"><p>Soziale Nachweise werden sichtbar ausgewiesen. Das Konzept unterscheidet zwischen dokumentierter Policy, Audit und verifiziertem Ergebnis.</p><div><span>Nachweisstatus</span><b>Teilweise</b></div></div>
+            <button class="score-row" data-score="transparency"><span>04</span><div><b>Transparenz & Lieferkette</b><small>Stufen, Herkunft und Nachweisvollständigkeit</small></div><strong>15 %</strong><i>+</i></button>
+            <div class="score-detail" data-detail="transparency"><p>Je mehr Lieferstufen und Dokumente verifiziert sind, desto höher der Transparenzwert. Der Status wird getrennt vom Impact dargestellt.</p><div><span>Daten vollständig</span><b>91 %</b></div></div>
+            <button class="score-row" data-score="durability"><span>05</span><div><b>Haltbarkeit & Pflege</b><small>Qualität, Reparierbarkeit und Nutzungsdauer</small></div><strong>integriert</strong><i>+</i></button>
+            <div class="score-detail" data-detail="durability"><p>Pflege und Reparierbarkeit beeinflussen die erwartete Nutzungsdauer. Die Kategorie kann je nach finaler Methodik integriert oder separat ausgewiesen werden.</p><div><span>Reparierbar</span><b>Ja</b></div></div>
+          </div>
+        </section>
+
+        <section class="regulation-section section-pad">
+          <div class="regulation-card reveal">
+            <div>
+              <span class="section-kicker light">EU-Kontext · 2025–2030</span>
+              <h2>Produktdaten werden<br />zur Infrastruktur.</h2>
+              <p>Die EU-Ökodesignverordnung (ESPR) schafft den Rahmen für produktspezifische Anforderungen und den Digitalen Produktpass. Textilien, insbesondere Bekleidung und Schuhe, gehören im Arbeitsplan 2025–2030 zu den priorisierten Produktgruppen.</p>
+              <a class="inline-link" href="https://environment.ec.europa.eu/document/download/5f7ff5e2-ebe9-4bd4-a139-db881bd6398f_en" target="_blank" rel="noreferrer">EU-Arbeitsplan ansehen ↗</a>
+            </div>
+            <div class="regulation-points">
+              <div><span>01</span><b>Strukturiert</b><small>Produktdaten konsistent erfassen</small></div>
+              <div><span>02</span><b>Nachweisbar</b><small>Quellen und Dokumente verknüpfen</small></div>
+              <div><span>03</span><b>Teilbar</b><small>Informationen zielgruppengerecht ausgeben</small></div>
+            </div>
+          </div>
+          <p class="legal-clarity"><b>Wichtig:</b> Der ESPR-Rahmen gilt bereits, konkrete Anforderungen für Textilien werden jedoch über nachgelagerte produktspezifische Rechtsakte festgelegt. What You Wear ist als vorbereitende Daten- und Kommunikationslogik konzipiert, nicht als Rechtsberatung oder garantierte Compliance-Lösung.</p>
+        </section>
+
+        <section class="brand-section section-pad" id="marken">
+          <div class="section-kicker">04 — Für Marken</div>
+          <div class="split-heading">
+            <h2>Ein Datenstand.<br /><em>Viele Outputs.</em></h2>
+            <p>Das B2B-Dashboard führt die Arbeitsschritte zusammen, die heute oft in Tabellen, Laufwerken und Einzeltools verteilt sind.</p>
+          </div>
+          <div class="dashboard-showcase reveal">
+            <div class="browser-bar"><span></span><span></span><span></span><b>app.whatyouwear.demo/dashboard</b><button data-action="open-dashboard">Demo öffnen ↗</button></div>
+            <img src="assets/dashboard-overview-reference.png" alt="Dashboard-Referenz aus dem bereitgestellten Konzeptdokument" />
+            <div class="showcase-overlay"><span>Interaktive Demo</span><h3>Vom Konzept<br />zum funktionierenden Workflow.</h3><button class="button button-light" data-action="open-dashboard">Dashboard starten <span>→</span></button></div>
+          </div>
+          <div class="feature-grid">
+            <article><span>◫</span><h3>Produkte verwalten</h3><p>Suche, Filter, Status und Scores an einem Ort.</p></article>
+            <article><span>◇</span><h3>Daten erfassen</h3><p>Material, Produktion und Lieferkette strukturiert bearbeiten.</p></article>
+            <article><span>⌁</span><h3>Lücken erkennen</h3><p>Vollständigkeit und nächste Schritte sichtbar machen.</p></article>
+            <article><span>↗</span><h3>Outputs erzeugen</h3><p>Label, Produktpass und Bericht exportieren.</p></article>
+          </div>
+        </section>
+
+        <section class="audience-section">
+          <div class="audience-copy">
+            <span class="section-kicker light">Zwei Zielgruppen · Ein System</span>
+            <h2>Komplex für Teams.<br /><em>Einfach für Menschen.</em></h2>
+          </div>
+          <div class="audience-cards">
+            <article><small>FÜR KONSUMENT:INNEN</small><h3>Orientierung in Sekunden.</h3><p>Score sehen, QR-Code scannen und nachvollziehen, wie das Produkt bewertet wurde.</p><a href="#loesung">Scan-Erlebnis ansehen →</a></article>
+            <article><small>FÜR MARKEN & HERSTELLER</small><h3>Transparenz im Workflow.</h3><p>Produktdaten, Nachweise, Handlungsfelder und Kommunikation aus einer Oberfläche steuern.</p><button data-action="open-dashboard">Dashboard testen →</button></article>
+          </div>
+        </section>
+
+        <section class="sources-section section-pad" id="quellen">
+          <div class="section-kicker">05 — Recherche & Einordnung</div>
+          <div class="sources-layout">
+            <div><h2>Echte Fakten.<br /><em>Sauber eingeordnet.</em></h2><p>Unsere Kommunikation stützt sich auf öffentlich zugängliche Primärquellen. Aussagen zur Wirkung einzelner Materialien oder Produkte werden erst gemacht, wenn produktspezifische Daten und Nachweise vorliegen.</p></div>
+            <div class="source-list">
+              <a href="https://www.eea.europa.eu/en/analysis/publications/circularity-of-the-eu-textiles-value-chain-in-numbers" target="_blank" rel="noreferrer"><span>01</span><div><b>EEA: Circularity of the EU textiles value chain</b><small>Konsum, Abfall, Umweltauswirkungen · 2025</small></div><i>↗</i></a>
+              <a href="https://environment.ec.europa.eu/topics/circular-economy-topics/eu-ecolabel/consumers_en" target="_blank" rel="noreferrer"><span>02</span><div><b>EU-Kommission: EU Ecolabel for Consumers</b><small>Umweltclaims und Labelvielfalt</small></div><i>↗</i></a>
+              <a href="https://eur-lex.europa.eu/eli/reg/2024/1781/oj/deu" target="_blank" rel="noreferrer"><span>03</span><div><b>EUR-Lex: Verordnung (EU) 2024/1781</b><small>ESPR und Digitaler Produktpass</small></div><i>↗</i></a>
+              <a href="https://environment.ec.europa.eu/document/download/5f7ff5e2-ebe9-4bd4-a139-db881bd6398f_en" target="_blank" rel="noreferrer"><span>04</span><div><b>EU-Kommission: ESPR Working Plan 2025–2030</b><small>Priorisierte Produktgruppen</small></div><i>↗</i></a>
+            </div>
+          </div>
+        </section>
+
+        <section class="cta-section" id="kontakt">
+          <div class="cta-ring ring-one"></div><div class="cta-ring ring-two"></div>
+          <div class="cta-content reveal"><span class="eyebrow light"><i></i> BEREIT FÜR DEN NÄCHSTEN SCHRITT?</span><h2>Zeigt, was in euren<br />Produkten <em>steckt.</em></h2><p>Erlebt den kompletten Workflow am Beispiel des Hoodie Classic.</p><div><button class="button button-light" data-action="open-dashboard">Demo-Dashboard öffnen <span>↗</span></button><a class="button button-outline-light" href="mailto:hello@whatyouwear.demo">Pilotprojekt anfragen</a></div></div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-brand"><div class="brand light"><span class="brand-mark"><svg viewBox="0 0 44 44"><path d="M8 27.5 22 19l14 8.5M22 19v-3.5c0-2.8 4.2-2.5 4.2-5.3 0-2.1-1.7-3.6-4-3.6-2 0-3.5 1-4.2 2.7"/></svg></span><span><strong>WHAT YOU WEAR</strong><small>TRANSPARENZLABEL</small></span></div><p>Ein Scan. Volle Transparenz.</p></div>
+        <div><b>ENTDECKEN</b><a href="#warum">Warum</a><a href="#loesung">So funktioniert’s</a><a href="#score">Score</a><a href="#quellen">Quellen</a></div>
+        <div><b>FÜR MARKEN</b><button data-action="open-dashboard">Dashboard</button><a href="#marken">Funktionen</a><a href="#kontakt">Pilotprojekt</a></div>
+        <div><b>HINWEIS</b><p>Hochschulprojekt / interaktiver Prototyp. Keine Zertifizierung oder Rechtsberatung.</p></div>
+        <div class="footer-bottom"><span>© 2026 WHAT YOU WEAR</span><span>KNOW WHAT YOU WEAR · BERLIN</span></div>
+      </footer>
+    </div>
+
+    <div id="dashboardView" class="dashboard-view" hidden>
+      <aside class="dashboard-sidebar" id="dashboardSidebar">
+        <button class="sidebar-close" id="sidebarClose" aria-label="Navigation schließen">×</button>
+        <a class="brand dashboard-brand" href="#home" data-action="go-home">
+          <span class="brand-mark"><svg viewBox="0 0 44 44"><path d="M8 27.5 22 19l14 8.5M22 19v-3.5c0-2.8 4.2-2.5 4.2-5.3 0-2.1-1.7-3.6-4-3.6-2 0-3.5 1-4.2 2.7"/></svg></span>
+          <span><strong>WHAT YOU WEAR</strong><small>BRAND PORTAL</small></span>
+        </a>
+        <nav class="dash-nav" aria-label="Dashboard Navigation">
+          <span>ARBEITSBEREICH</span>
+          <button class="active" data-page="overview"><i>⌂</i>Übersicht</button>
+          <button data-page="products"><i>▦</i>Produkte <b id="navProductCount">6</b></button>
+          <button data-page="materials"><i>◒</i>Materialien</button>
+          <button data-page="production"><i>◎</i>Produktion & CO₂</button>
+          <button data-page="supply"><i>⌁</i>Lieferkette</button>
+          <span>ANALYSE & OUTPUT</span>
+          <button data-page="analytics"><i>⌁</i>Analytics</button>
+          <button data-page="reports"><i>▤</i>Berichte & Labels</button>
+        </nav>
+        <div class="sidebar-progress">
+          <div><span>PORTFOLIO-DATEN</span><b id="sidebarCompleteness">91 %</b></div>
+          <div class="progress"><i style="width:91%"></i></div>
+          <small>Noch 4 Datenpunkte bis zum vollständigen Portfolio.</small>
+        </div>
+        <div class="sidebar-user"><span>EJ</span><div><b>Emilija J.</b><small>Demo Workspace</small></div><button>•••</button></div>
+      </aside>
+
+      <div class="dashboard-main">
+        <header class="dashboard-topbar">
+          <button id="sidebarToggle" class="sidebar-toggle" aria-label="Navigation öffnen">☰</button>
+          <div class="dash-breadcrumb"><span>What You Wear</span><b>/</b><strong id="breadcrumbTitle">Übersicht</strong></div>
+          <div class="dash-top-actions"><button class="icon-button" id="searchFocus" aria-label="Produkte suchen">⌕</button><button class="icon-button has-dot" aria-label="Benachrichtigungen">♢</button><button class="button button-small button-dark" id="topAddProduct">+ Produkt anlegen</button></div>
+        </header>
+        <main id="dashboardContent" class="dashboard-content"></main>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="productModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="modal-close" data-action="close-modal" aria-label="Schließen">×</button>
+        <span class="section-kicker">Neues Produkt</span>
+        <h2 id="modalTitle">Produkt anlegen</h2>
+        <p>Erstelle einen neuen Datensatz. Details kannst du anschließend in den Modulen ergänzen.</p>
+        <form id="newProductForm">
+          <label>Produktname<input name="name" required placeholder="z. B. Essential T-Shirt" /></label>
+          <div class="form-row"><label>SKU<input name="sku" required placeholder="SKU-007-TEE" /></label><label>Kategorie<select name="category"><option>Oberteile</option><option>Hosen</option><option>Jacken</option><option>Accessoires</option></select></label></div>
+          <label>Produktionsland<select name="country"><option>Portugal</option><option>Türkei</option><option>Deutschland</option><option>Italien</option><option>Bangladesch</option></select></label>
+          <div class="modal-actions"><button type="button" class="button button-ghost" data-action="close-modal">Abbrechen</button><button class="button button-dark" type="submit">Produkt erstellen</button></div>
+        </form>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
