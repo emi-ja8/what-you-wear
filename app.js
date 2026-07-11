@@ -1,6 +1,10 @@
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
+const SCORE_WEIGHTS = { material: .35, production: .30, social: .25, transparency: .10 };
+const SCORE_VERSION = 2;
+const EUROPEAN_PRODUCTION_COUNTRIES = ["Deutschland", "Italien", "Portugal"];
+
 const defaultProducts = [
   { id: 1, name: "Hoodie Classic", sku: "SKU-001-HOOD-CL", category: "Oberteile", country: "Portugal", score: 82, grade: "B", status: "Veröffentlicht", completeness: 91, organic: 95, recycled: 5, certification: "GOTS", renewable: 75, co2: 6, transport: "LKW", materialScore: 92, productionScore: 80, socialScore: 68, transparencyScore: 91, material: "95 % Bio-Baumwolle · 5 % recyceltes Polyester", certificates: ["GOTS-Zertifikat_2026.pdf", "Social-Audit_Portugal.pdf"], supply: [true, true, true, true, false] },
   { id: 2, name: "Essential T-Shirt", sku: "SKU-002-TEE-ES", category: "Oberteile", country: "Portugal", score: 91, grade: "A", status: "Veröffentlicht", completeness: 96, organic: 100, recycled: 0, certification: "GOTS", renewable: 86, co2: 3.2, transport: "Bahn", materialScore: 98, productionScore: 90, socialScore: 84, transparencyScore: 96, material: "100 % Bio-Baumwolle", certificates: ["GOTS-Essential.pdf"], supply: [true, true, true, true, true] },
@@ -21,15 +25,16 @@ const state = {
 
 function loadProducts() {
   try {
-    const saved = JSON.parse(localStorage.getItem("wyw-products-v1"));
-    return Array.isArray(saved) && saved.length ? saved : structuredClone(defaultProducts);
+    const saved = JSON.parse(localStorage.getItem("wyw-products-v2") || localStorage.getItem("wyw-products-v1"));
+    const products = Array.isArray(saved) && saved.length ? saved : structuredClone(defaultProducts);
+    return products.map(hydrateProduct);
   } catch (_) {
-    return structuredClone(defaultProducts);
+    return structuredClone(defaultProducts).map(hydrateProduct);
   }
 }
 
 function persist() {
-  localStorage.setItem("wyw-products-v1", JSON.stringify(state.products));
+  localStorage.setItem("wyw-products-v2", JSON.stringify(state.products));
   updateGlobalMetrics();
 }
 
@@ -38,15 +43,89 @@ function selectedProduct() {
 }
 
 function gradeFor(score) {
-  if (score >= 88) return "A";
-  if (score >= 76) return "B";
-  if (score >= 62) return "C";
-  if (score >= 48) return "D";
+  if (score >= 90) return "A";
+  if (score >= 75) return "B";
+  if (score >= 60) return "C";
+  if (score >= 40) return "D";
   return "E";
 }
 
+function gradeCopy(grade) {
+  return {
+    A: ["SEHR GUT", "Besonders bewusste Wahl."],
+    B: ["GUT", "Bewusste Wahl."],
+    C: ["SOLIDE", "Gute Basis."],
+    D: ["AUSBAUFÄHIG", "Verbesserung nötig."],
+    E: ["KRITISCH", "Nicht empfohlen."]
+  }[grade];
+}
+
+function bool(value, fallback = false) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function hydrateProduct(product) {
+  const p = { ...product };
+  p.scoreVersion = SCORE_VERSION;
+  p.sustainablePercent = Number.isFinite(p.sustainablePercent) ? p.sustainablePercent : Math.min(100, (Number(p.organic) || 0) + (Number(p.recycled) || 0));
+  p.recycledPolyester = bool(p.recycledPolyester, /recyceltes polyester/i.test(p.material || ""));
+  p.highVirginPolyester = bool(p.highVirginPolyester);
+  p.transportDistance = Number.isFinite(p.transportDistance) ? p.transportDistance : ({ Deutschland: 420, Italien: 1050, Portugal: 1800, Türkei: 2300 }[p.country] || 6500);
+  p.wageStandard = p.wageStandard || ([1, 2, 4].includes(p.id) ? "living" : "minimum");
+  p.iloWorkingHours = bool(p.iloWorkingHours, true);
+  p.certifiedSafety = bool(p.certifiedSafety, [1, 2, 4, 5].includes(p.id));
+  p.noChildLabor = bool(p.noChildLabor, true);
+  p.transparentFacilities = bool(p.transparentFacilities, p.id !== 3);
+  p.laborViolations = bool(p.laborViolations);
+  p.materialOriginsTraceable = bool(p.materialOriginsTraceable, (p.supply || []).filter(Boolean).length >= 3);
+  p.digitalProductPassport = bool(p.digitalProductPassport, [1, 2, 4, 6].includes(p.id));
+  p.partialSupplierData = bool(p.partialSupplierData);
+  recalculateProduct(p);
+  return p;
+}
+
+function materialPoints(product) {
+  const sustainable = Number(product.sustainablePercent) || 0;
+  const base = sustainable >= 80 ? 60 : sustainable >= 50 ? 40 : sustainable >= 20 ? 20 : 0;
+  return base + (product.certification && product.certification !== "Keine" ? 20 : 0) - (product.recycledPolyester ? 5 : 0) - (product.highVirginPolyester ? 20 : 0);
+}
+
+function productionPoints(product) {
+  const renewable = Number(product.renewable) || 0;
+  const energy = renewable > 80 ? 30 : renewable >= 50 ? 20 : 10;
+  const co2 = Number(product.co2) || 0;
+  const emissions = co2 < 5 ? 30 : co2 <= 10 ? 20 : co2 > 20 ? -25 : 0;
+  const europe = EUROPEAN_PRODUCTION_COUNTRIES.includes(product.country) ? 20 : 0;
+  const distance = Number(product.transportDistance) || 0;
+  const route = distance < 2000 ? 20 : distance > 10000 ? -15 : 0;
+  const air = product.transport === "Luftfracht" ? -20 : 0;
+  return energy + emissions + europe + route + air;
+}
+
+function socialPoints(product) {
+  const wage = product.wageStandard === "living" ? 25 : product.wageStandard === "minimum" ? 10 : 0;
+  return wage + (product.iloWorkingHours ? 10 : 0) + (product.certifiedSafety ? 15 : 0) + (product.noChildLabor ? 20 : 0) + (product.transparentFacilities ? 15 : 0) - (product.laborViolations ? 30 : 0);
+}
+
+function transparencyPoints(product) {
+  const completeChain = (product.supply || []).length === 5 && product.supply.every(Boolean);
+  return (completeChain ? 40 : 0) + (product.materialOriginsTraceable ? 30 : 0) + (product.digitalProductPassport ? 30 : 0) - (product.partialSupplierData ? 20 : 0);
+}
+
+function normalizedScore(points, maximum) {
+  return Math.max(0, Math.min(100, Math.round(points / maximum * 100)));
+}
+
 function recalculateProduct(product) {
-  product.score = Math.round(product.materialScore * .30 + product.productionScore * .30 + product.socialScore * .25 + product.transparencyScore * .15);
+  product.materialPoints = materialPoints(product);
+  product.productionPoints = productionPoints(product);
+  product.socialPoints = socialPoints(product);
+  product.transparencyPoints = transparencyPoints(product);
+  product.materialScore = normalizedScore(product.materialPoints, 80);
+  product.productionScore = normalizedScore(product.productionPoints, 100);
+  product.socialScore = normalizedScore(product.socialPoints, 85);
+  product.transparencyScore = normalizedScore(product.transparencyPoints, 100);
+  product.score = Math.round(product.materialScore * SCORE_WEIGHTS.material + product.productionScore * SCORE_WEIGHTS.production + product.socialScore * SCORE_WEIGHTS.social + product.transparencyScore * SCORE_WEIGHTS.transparency);
   product.grade = gradeFor(product.score);
 }
 
@@ -96,10 +175,10 @@ function dashboardPageHead(kicker, title, description, actions = "") {
 }
 
 function renderDashboard() {
-  const titles = { overview: "Übersicht", products: "Produkte", materials: "Materialien", production: "Produktion & CO₂", supply: "Lieferkette", analytics: "Analytics", reports: "Berichte & Labels" };
+  const titles = { overview: "Übersicht", products: "Produkte", materials: "Materialien", production: "Produktion & CO₂", social: "Soziale Standards", supply: "Lieferkette", analytics: "Analytics", reports: "Berichte & Labels" };
   $("#breadcrumbTitle").textContent = titles[state.currentPage];
   $$(".dash-nav button").forEach(btn => btn.classList.toggle("active", btn.dataset.page === state.currentPage));
-  const renderers = { overview: renderOverview, products: renderProducts, materials: renderMaterials, production: renderProduction, supply: renderSupply, analytics: renderAnalytics, reports: renderReports };
+  const renderers = { overview: renderOverview, products: renderProducts, materials: renderMaterials, production: renderProduction, social: renderSocial, supply: renderSupply, analytics: renderAnalytics, reports: renderReports };
   $("#dashboardContent").innerHTML = renderers[state.currentPage]();
   bindCurrentPage();
   updateGlobalMetrics();
@@ -109,17 +188,18 @@ function renderOverview() {
   const avg = Math.round(state.products.reduce((a, p) => a + p.score, 0) / state.products.length);
   const complete = Math.round(state.products.reduce((a, p) => a + p.completeness, 0) / state.products.length);
   const organic = Math.round(state.products.reduce((a, p) => a + p.organic, 0) / state.products.length);
+  const categoryAverages = ["materialScore", "productionScore", "socialScore", "transparencyScore"].map(key => Math.round(state.products.reduce((sum, p) => sum + p[key], 0) / state.products.length));
   const latest = state.products.slice(0, 4);
   return `${dashboardPageHead("Dashboard", "Guten Morgen, Emilija", "Hier siehst du den aktuellen Stand eures Produktportfolios.", `<button class="button button-ghost" data-export="json">Daten exportieren</button><button class="button button-dark" data-open-modal>+ Produkt anlegen</button>`)}
     <div class="metric-grid">
-      <article class="metric-card primary"><span>PORTFOLIO-SCORE</span><div class="metric-main"><strong>${gradeFor(avg)} · ${avg}</strong><div class="mini-donut"><span>${gradeFor(avg)}</span></div></div><small class="metric-change">↑ 3 Punkte seit letztem Monat</small></article>
+      <article class="metric-card primary"><span>PORTFOLIO-SCORE</span><div class="metric-main"><strong>${gradeFor(avg)} · ${avg}</strong><div class="mini-donut" style="--portfolio-score:${avg}%"><span>${gradeFor(avg)}</span></div></div><small>Berechnet nach der neuen A–E-Skala</small></article>
       <article class="metric-card"><span>AKTIVE PRODUKTE</span><div class="metric-main"><strong>${state.products.length}</strong><small>Produkte</small></div><small class="metric-change">+ 2 im laufenden Semester</small></article>
       <article class="metric-card"><span>Ø BIO-ANTEIL</span><div class="metric-main"><strong>${organic} %</strong><small>im Portfolio</small></div><small>Gewichteter Demo-Mittelwert</small></article>
       <article class="metric-card"><span>DATENVOLLSTÄNDIGKEIT</span><div class="metric-main"><strong>${complete} %</strong><small>belegt</small></div><small class="metric-change">↑ 6 % durch neue Nachweise</small></article>
     </div>
     <div class="dashboard-grid">
       <section class="panel"><div class="panel-head"><h2>Scores nach Kategorie</h2><span>Portfolio-Durchschnitt</span></div><div class="category-bars">
-        ${categoryBar("Materialien & Rohstoffe", 84, "A")}${categoryBar("Produktion & CO₂", 78, "B")}${categoryBar("Soziale Standards", 72, "C")}${categoryBar("Transparenz", complete, gradeFor(complete))}
+        ${categoryBar("Materialien · 35 %", categoryAverages[0], gradeFor(categoryAverages[0]))}${categoryBar("Produktion · 30 %", categoryAverages[1], gradeFor(categoryAverages[1]))}${categoryBar("Soziales · 25 %", categoryAverages[2], gradeFor(categoryAverages[2]))}${categoryBar("Transparenz · 10 %", categoryAverages[3], gradeFor(categoryAverages[3]))}
       </div></section>
       <section class="panel"><div class="panel-head"><h2>Nächste Schritte</h2><button data-page-link="products">Alle ansehen →</button></div><div class="recommendation-list">
         <div class="recommendation"><span>!</span><div><b>3 Produkte mit Datenlücken</b><small>Lieferstufe 4 verifizieren</small></div><i>→</i></div>
@@ -157,6 +237,10 @@ function productSelector() {
   return `<select id="editorProductSelect">${state.products.map(p => `<option value="${p.id}" ${p.id === state.selectedProductId ? "selected" : ""}>${p.name} · ${p.sku}</option>`).join("")}</select>`;
 }
 
+function criterionCheckbox(name, title, points, checked, detail = "") {
+  return `<label class="criterion-check full"><input type="checkbox" name="${name}" ${checked ? "checked" : ""} /><span><b>${title}</b>${detail ? `<small>${detail}</small>` : ""}</span><strong class="${String(points).startsWith("-") ? "negative" : ""}">${String(points).startsWith("-") ? points : `+${points}`}</strong></label>`;
+}
+
 function renderMaterials() {
   const p = selectedProduct();
   return `${dashboardPageHead("Produktdaten", "Materialien", "Materialmix, Herkunft und Zertifikate des gewählten Produkts.", `<label class="button button-ghost">Produkt: ${productSelector()}</label>`)}
@@ -164,16 +248,19 @@ function renderMaterials() {
       <section class="editor-card"><h2>Materialzusammensetzung</h2><p>Änderungen aktualisieren den Material- und Gesamtscore live.</p>
         <form id="materialForm" class="field-grid">
           <label class="full">Materialbeschreibung<input name="material" value="${p.material}" /></label>
+          <label class="full">Anteil nachhaltiger Materialien in %<input type="number" min="0" max="100" name="sustainablePercent" value="${p.sustainablePercent}" /><small class="field-help">80–100 %: +60 · 50–79 %: +40 · 20–49 %: +20 · unter 20 %: 0 Punkte</small></label>
           <label>Bio-Anteil in %<input type="number" min="0" max="100" name="organic" value="${p.organic}" /></label>
           <label>Recyclinganteil in %<input type="number" min="0" max="100" name="recycled" value="${p.recycled}" /></label>
           <label>Hauptzertifizierung<select name="certification">${["Keine","GOTS","OEKO-TEX","GRS","EU Ecolabel"].map(c => `<option ${c===p.certification?"selected":""}>${c}</option>`).join("")}</select></label>
           <label>Herkunft Rohfaser<select name="origin"><option>Türkei</option><option>Portugal</option><option>Indien</option><option>Deutschland</option></select></label>
+          ${criterionCheckbox("recycledPolyester", "Recycelter Polyesteranteil", -5, p.recycledPolyester, "Abzug laut Kriterienkatalog")}
+          ${criterionCheckbox("highVirginPolyester", "Hoher Anteil neuer Polyesterfasern", -20, p.highVirginPolyester, "Abzug laut Kriterienkatalog")}
           <div class="form-divider"></div><span class="form-section-title">Nachweise</span>
           <label class="upload-zone full"><input type="file" id="certificateUpload" accept=".pdf,.jpg,.jpeg,.png" /><span>⇧</span><b>Zertifikat hochladen</b><small>PDF, JPG oder PNG · max. 10 MB</small></label>
         </form>
         <div class="certificate-list" id="certificateList">${certificateList(p)}</div>
         <div class="save-bar"><button class="button button-ghost" data-reset-demo>Zurücksetzen</button><button class="button button-dark" id="saveMaterial">Änderungen speichern</button></div>
-      </section>${scorePreview(p, "MATERIALSCORE", p.materialScore)}
+      </section>${scorePreview(p, "MATERIALSCORE · 35 %", p.materialScore, p.materialPoints, 80)}
     </div>`;
 }
 
@@ -181,8 +268,8 @@ function certificateList(p) {
   return p.certificates.length ? p.certificates.map(c => `<div class="certificate-item"><span>▤</span><div><b>${c}</b><small>Verknüpft mit ${p.name}</small></div><i>✓ gültig</i></div>`).join("") : `<div class="empty-state"><b>Noch kein Nachweis</b>Lade ein Zertifikat hoch, um die Datenlage zu verbessern.</div>`;
 }
 
-function scorePreview(p, label, score) {
-  return `<aside class="score-preview" id="scorePreview"><span>${label}</span><div class="score-circle" style="--score:${score}%"><strong id="previewGrade">${gradeFor(score)}</strong></div><div class="score-number"><span id="previewScore">${score}</span> / 100</div><small>Live-Demo auf Basis der Konzeptgewichtung</small><div class="score-breakdown"><div><span>Gesamtscore</span><b>${p.grade} · ${p.score}</b></div><div><span>Daten vollständig</span><b>${p.completeness} %</b></div><div><span>Status</span><b>${p.status}</b></div></div></aside>`;
+function scorePreview(p, label, score, points, maximum) {
+  return `<aside class="score-preview" id="scorePreview"><span>${label}</span><div class="score-circle" style="--score:${score}%"><strong id="previewGrade">${gradeFor(score)}</strong></div><div class="score-number"><span id="previewScore">${score}</span> / 100</div><small><span id="previewPoints">${points}</span> von ${maximum} Rohpunkten · auf 100 normiert</small><div class="score-breakdown"><div><span>Gesamtscore</span><b>${p.grade} · ${p.score}</b></div><div><span>Daten vollständig</span><b>${p.completeness} %</b></div><div><span>Notenskala</span><b>A ab 90</b></div></div></aside>`;
 }
 
 function renderProduction() {
@@ -195,11 +282,26 @@ function renderProduction() {
         <label>Erneuerbare Energie in %<input type="number" min="0" max="100" name="renewable" value="${p.renewable}" /></label>
         <label>CO₂e pro Produkt in kg<input type="number" min="0" max="50" step="0.1" name="co2" value="${p.co2}" /></label>
         <label>Haupttransport<select name="transport">${["Bahn","Schiff","LKW","Luftfracht"].map(c=>`<option ${c===p.transport?"selected":""}>${c}</option>`).join("")}</select></label>
-        <label>Transportdistanz in km<input type="number" value="2160" /></label>
+        <label>Transportdistanz in km<input type="number" min="0" name="transportDistance" value="${p.transportDistance}" /></label>
         <div class="form-divider"></div><span class="form-section-title">Berechnungsstatus</span>
-        <div class="full recommendation"><span>i</span><div><b>Primärdaten für Energie vorhanden</b><small>CO₂e-Wert zuletzt am 08.07.2026 aktualisiert</small></div><i>✓</i></div>
+        <div class="full criteria-note"><b>Punkte werden direkt aus den Werten vergeben.</b><small>Energie bis +30 · CO₂ bis +30 · Produktion in Europa +20 · Lieferweg bis +20 · Luftfracht −20</small></div>
       </form><div class="save-bar"><button class="button button-ghost" data-page-link="supply">Lieferweg prüfen</button><button class="button button-dark" id="saveProduction">Änderungen speichern</button></div>
-    </section>${scorePreview(p, "PRODUKTIONSSCORE", p.productionScore)}</div>`;
+    </section>${scorePreview(p, "PRODUKTIONSSCORE · 30 %", p.productionScore, p.productionPoints, 100)}</div>`;
+}
+
+function renderSocial() {
+  const p = selectedProduct();
+  return `${dashboardPageHead("Produktdaten", "Soziale Standards", "Arbeitsbedingungen und soziale Verantwortung anhand der festgelegten Kriterien.", `<label class="button button-ghost">Produkt: ${productSelector()}</label>`)}
+    <div class="editor-layout"><section class="editor-card"><h2>Soziale Nachweise</h2><p>Die Kriterien ergeben maximal 85 Rohpunkte und werden für den Teilscore auf 100 normiert.</p>
+      <form id="socialForm" class="field-grid">
+        <label class="full">Lohnstandard<select name="wageStandard"><option value="none" ${p.wageStandard === "none" ? "selected" : ""}>Nicht nachgewiesen · 0 Punkte</option><option value="minimum" ${p.wageStandard === "minimum" ? "selected" : ""}>Gesetzlicher Mindestlohn · +10</option><option value="living" ${p.wageStandard === "living" ? "selected" : ""}>Living Wage · +25</option></select></label>
+        ${criterionCheckbox("iloWorkingHours", "Arbeitszeiten nach internationalen ILO-Standards", 10, p.iloWorkingHours)}
+        ${criterionCheckbox("certifiedSafety", "Zertifizierte Arbeitssicherheit", 15, p.certifiedSafety)}
+        ${criterionCheckbox("noChildLabor", "Keine Kinderarbeit nachgewiesen", 20, p.noChildLabor)}
+        ${criterionCheckbox("transparentFacilities", "Transparente Produktionsstätten", 15, p.transparentFacilities)}
+        ${criterionCheckbox("laborViolations", "Verstöße gegen Arbeitsrechte", -30, p.laborViolations)}
+      </form><div class="save-bar"><button class="button button-dark" id="saveSocial">Änderungen speichern</button></div>
+    </section>${scorePreview(p, "SOZIALSCORE · 25 %", p.socialScore, p.socialPoints, 85)}</div>`;
 }
 
 function renderSupply() {
@@ -212,13 +314,28 @@ function renderSupply() {
       <div class="supply-timeline">${stages.map((s,i)=>`<div class="supply-step ${p.supply[i]?"verified":""}"><button data-stage="${i}">${p.supply[i]?"✓":i+1}</button><b>${s[0]}</b><small>${s[1]}</small></div>`).join("")}</div>
       <div class="supply-card-grid">${stages.slice(0,3).map((s,i)=>`<article class="supply-card"><span>STUFE 0${i+1}</span><h3>${s[0]}</h3><p>${s[1]}<br />Partner-ID: WYW-${1840+i}</p><span class="verified-pill">${p.supply[i]?"✓ Verifiziert":"○ Nachweis fehlt"}</span></article>`).join("")}</div>
     </section>
-    <div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Datenvollständigkeit</h2><span>${p.completeness} %</span></div>${categoryBar("Lieferstufen", p.supply.filter(Boolean).length*20, `${p.supply.filter(Boolean).length}/5`)}${categoryBar("Nachweise", p.transparencyScore, gradeFor(p.transparencyScore))}</section><section class="panel"><div class="panel-head"><h2>Digitaler Produktpass</h2></div><div class="recommendation"><span>⌗</span><div><b>QR-Profil ist vorbereitet</b><small>${p.supply.filter(Boolean).length} von 5 Stufen verifiziert</small></div><i>→</i></div></section></div>`;
+    <div class="editor-layout supply-score-layout"><section class="editor-card"><h2>Transparenz-Kriterien</h2><p>Eine vollständig öffentlich einsehbare Lieferkette bringt +40 Punkte. Die übrigen Kriterien werden hier gepflegt.</p>
+      <form id="transparencyForm" class="field-grid">
+        <div class="full criteria-note"><b>${p.supply.every(Boolean) ? "✓ Vollständige Lieferkette öffentlich einsehbar · +40" : `Noch ${p.supply.filter(x => !x).length} Lieferstufe(n) fehlen · 0 Punkte`}</b><small>Alle fünf Stufen müssen verifiziert sein.</small></div>
+        ${criterionCheckbox("materialOriginsTraceable", "Herkunft aller Materialien nachvollziehbar", 30, p.materialOriginsTraceable)}
+        ${criterionCheckbox("digitalProductPassport", "Digitaler Produktpass vorhanden", 30, p.digitalProductPassport)}
+        ${criterionCheckbox("partialSupplierData", "Teilweise fehlende Lieferantendaten", -20, p.partialSupplierData)}
+      </form><div class="save-bar"><button class="button button-dark" id="saveTransparency">Kriterien speichern</button></div>
+    </section>${scorePreview(p, "TRANSPARENZSCORE · 10 %", p.transparencyScore, p.transparencyPoints, 100)}</div>`;
 }
 
 function renderAnalytics() {
+  const gradeColors = { A: "#315e4e", B: "#7e9a61", C: "#c6a653", D: "#d58245", E: "#b9564d" };
+  let distributionStart = 0;
+  const distributionSegments = ["A", "B", "C", "D", "E"].map(grade => {
+    const count = state.products.filter(p => p.grade === grade).length;
+    const start = distributionStart;
+    distributionStart += count / state.products.length * 100;
+    return `${gradeColors[grade]} ${start}% ${distributionStart}%`;
+  }).join(",");
   return `${dashboardPageHead("Portfolioanalyse", "Analytics", "Score-Entwicklung, Verteilung und priorisierte Handlungsfelder.", `<button class="button button-ghost" data-export="csv">Daten herunterladen</button><button class="button button-dark" data-page-link="reports">Bericht erstellen</button>`)}
     <div class="analytics-cards"><section class="panel"><div class="panel-head"><h2>Score-Entwicklung</h2><span>Jan–Jul 2026</span></div><div class="chart-wrap"><svg class="line-chart" viewBox="0 0 600 210" preserveAspectRatio="none"><path class="chart-gridline" d="M0 42H600M0 84H600M0 126H600M0 168H600"/><polyline points="0,160 100,145 200,132 300,112 400,118 500,84 600,69"/><circle cx="0" cy="160" r="4"/><circle cx="100" cy="145" r="4"/><circle cx="200" cy="132" r="4"/><circle cx="300" cy="112" r="4"/><circle cx="400" cy="118" r="4"/><circle cx="500" cy="84" r="4"/><circle cx="600" cy="69" r="4"/></svg></div><div class="chart-labels"><span>JAN</span><span>FEB</span><span>MÄR</span><span>APR</span><span>MAI</span><span>JUN</span><span>JUL</span></div></section>
-      <section class="panel"><div class="panel-head"><h2>Score-Verteilung</h2><span>${state.products.length} Produkte</span></div><div class="donut-large"></div><div class="legend"><span><i></i>A · Sehr gut</span><span><i style="background:#7e9a61"></i>B · Gut</span><span><i style="background:#c6a653"></i>C · Solide</span><span><i style="background:#d4d8d2"></i>In Prüfung</span></div></section></div>
+      <section class="panel"><div class="panel-head"><h2>Score-Verteilung</h2><span>${state.products.length} Produkte</span></div><div class="donut-large" data-total="${state.products.length}" style="background:conic-gradient(${distributionSegments})"></div><div class="legend"><span><i></i>A · 90–100</span><span><i style="background:#7e9a61"></i>B · 75–89</span><span><i style="background:#c6a653"></i>C · 60–74</span><span><i style="background:#d58245"></i>D · 40–59</span><span><i style="background:#b9564d"></i>E · 0–39</span></div></section></div>
     <div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>CO₂e nach Produkt</h2><span>kg pro Stück</span></div><div class="bar-chart">${state.products.map((p,i)=>`<div class="bar-group"><i style="height:${Math.min(95,p.co2*6)}%"></i><i style="height:${Math.min(95,(p.co2*.78)*6)}%"></i><span>${p.name.split(" ")[0]}</span></div>`).join("")}</div></section><section class="panel"><div class="panel-head"><h2>Empfehlungen</h2><span>Priorisiert</span></div><div class="insight-card"><span>GRÖSSTER HEBEL</span><h3>Denim: Produktionsenergie belegen</h3><p>Primärdaten könnten Produktionsscore und Nachweisqualität verbessern.</p></div><div class="insight-card"><span>SCHNELL UMSETZBAR</span><h3>Zertifikat der Field Jacket erneuern</h3><p>Der aktuelle GRS-Nachweis läuft in 43 Tagen aus.</p></div></section></div>`;
 }
 
@@ -231,7 +348,24 @@ function renderReports() {
       <div class="report-row"><span>{ }</span><div><b>Produktpass-Daten</b><small>JSON · maschinenlesbar</small></div><button data-download="product-json">Download</button></div>
       <div class="report-row"><span>▦</span><div><b>Portfolio-Übersicht</b><small>CSV · ${state.products.length} Produkte</small></div><button data-export="csv">Download</button></div>
     </div></section>
-    <section class="editor-card"><h2>Label-Vorschau</h2><p>${p.name} · ${p.sku}</p><div class="label-preview"><small>WHAT YOU WEAR</small><div class="label-hanger"><svg viewBox="0 0 80 38"><path d="M4 34 40 12l36 22M40 12V7c0-6 10-5 10-12 0-5-4-8-10-8-5 0-9 3-10 7" fill="none" stroke="currentColor"/></svg></div><div class="label-title">TRANSPARENZ LABEL</div><div class="label-score-row"><div class="grade big">${p.grade}</div><div><b>${p.score >= 76 ? "GUT" : "SOLIDE"}</b><small>${p.score} von 100 Punkten</small></div></div><div class="label-categories"><span>MAT.<br /><b>${gradeFor(p.materialScore)}</b></span><span>PROD.<br /><b>${gradeFor(p.productionScore)}</b></span><span>SOZ.<br /><b>${gradeFor(p.socialScore)}</b></span><span>TRANS.<br /><b>${gradeFor(p.transparencyScore)}</b></span></div></div><div class="report-buttons"><button class="button button-ghost" data-download="label">SVG laden</button><button class="button button-dark" id="copyShareLink">Link kopieren</button></div></section></div>`;
+    <section class="editor-card"><h2>Label-Vorschau</h2><p>${p.name} · ${p.sku}</p>${labelMarkup(p)}<div class="report-buttons"><button class="button button-ghost" data-download="label">SVG laden</button><button class="button button-dark" id="copyShareLink">Link kopieren</button></div></section></div>`;
+}
+
+function labelMarkup(p) {
+  const copy = gradeCopy(p.grade);
+  const category = (icon, title, score, tone) => `<div class="label-category ${tone}"><i>${icon}</i><span><small>${title}</small><b>${gradeFor(score)}</b></span></div>`;
+  return `<div class="label-preview correct-label">
+    <div class="label-logo"><span>W H A T&nbsp;&nbsp;Y O U&nbsp;&nbsp;W E A R</span><svg viewBox="0 0 80 42"><path d="M6 38 40 18l34 20M40 18V9c0-7 10-5 10-13 0-5-4-8-10-8-6 0-10 4-10 9" /></svg></div>
+    <div class="label-title">TRANSPARENZ LABEL</div>
+    <div class="label-main"><div class="label-leaf-grade">${p.grade}</div><div class="label-verdict"><b>${copy[0]}</b><span>${copy[1]}</span></div></div>
+    <div class="label-category-grid">
+      ${category("◒", "MATERIALIEN &<br>ROHSTOFFE", p.materialScore, "green")}
+      ${category("♜", "PRODUKTION<br>& CO₂", p.productionScore, "amber")}
+      ${category("♙", "SOZIALE<br>STANDARDS", p.socialScore, "green")}
+      ${category("♢", "TRANSPARENZ &<br>LIEFERKETTE", p.transparencyScore, "amber")}
+    </div>
+    <div class="label-qr-footer"><i>♢</i><span>Scanne den QR-Code<br>für alle Details zu<br>diesem Produkt.</span><svg viewBox="0 0 60 60" aria-label="QR-Code Vorschau"><rect width="60" height="60" fill="#fff"/><path d="M2 2h18v18H2zm38 0h18v18H40zM2 40h18v18H2zM7 7v8h8V7zm38 0v8h8V7zM7 45v8h8v-8zM25 2h5v5h-5zm8 0h5v12h-5zM23 11h7v7h-7zm9 8h8v6h-8zm-9 3h6v10h-6zm12 6h7v7h-7zm10-6h6v10h-6zm8 3h5v13h-5zM23 36h9v6h-9zm12 2h6v12h-6zm9-2h6v7h-6zm9 8h5v14h-5zm-29 2h7v12h-7zm10 8h14v4H34z" fill="#111"/></svg></div>
+  </div>`;
 }
 
 function bindCurrentPage() {
@@ -249,6 +383,7 @@ function bindCurrentPage() {
 
   bindMaterialPage();
   bindProductionPage();
+  bindSocialPage();
   bindSupplyPage();
   $("#copyShareLink")?.addEventListener("click", async () => {
     const link = `${location.origin}${location.pathname}#product-${selectedProduct().sku}`;
@@ -270,14 +405,9 @@ function bindMaterialPage() {
   if (!form) return;
   const updatePreview = () => {
     const data = new FormData(form);
-    const organic = Number(data.get("organic")) || 0;
-    const recycled = Number(data.get("recycled")) || 0;
-    const cert = data.get("certification") !== "Keine" ? 20 : 0;
-    const score = Math.min(100, Math.round(organic * .62 + recycled * .18 + cert));
-    $("#previewScore").textContent = score;
-    $("#previewGrade").textContent = gradeFor(score);
-    $("#scorePreview .score-circle").style.setProperty("--score", `${score}%`);
-    form.dataset.liveScore = score;
+    const draft = { ...selectedProduct(), sustainablePercent: Number(data.get("sustainablePercent")), certification: data.get("certification"), recycledPolyester: form.elements.recycledPolyester.checked, highVirginPolyester: form.elements.highVirginPolyester.checked };
+    const points = materialPoints(draft);
+    updateLivePreview(normalizedScore(points, 80), points);
   };
   form.addEventListener("input", updatePreview);
   $("#certificateUpload")?.addEventListener("change", e => {
@@ -288,27 +418,48 @@ function bindMaterialPage() {
   });
   $("#saveMaterial")?.addEventListener("click", () => {
     const p = selectedProduct(); const data = new FormData(form);
-    p.material = data.get("material"); p.organic = Number(data.get("organic")); p.recycled = Number(data.get("recycled")); p.certification = data.get("certification"); p.materialScore = Number(form.dataset.liveScore || p.materialScore); recalculateProduct(p); persist(); renderDashboard(); toast("Materialdaten und Score wurden gespeichert.");
+    p.material = data.get("material"); p.sustainablePercent = Number(data.get("sustainablePercent")); p.organic = Number(data.get("organic")); p.recycled = Number(data.get("recycled")); p.certification = data.get("certification"); p.recycledPolyester = form.elements.recycledPolyester.checked; p.highVirginPolyester = form.elements.highVirginPolyester.checked; recalculateProduct(p); persist(); renderDashboard(); toast("Materialkriterien und Score wurden gespeichert.");
   });
-  $("[data-reset-demo]")?.addEventListener("click", () => { const original = defaultProducts.find(x => x.id === selectedProduct().id); if (original) Object.assign(selectedProduct(), structuredClone(original)); persist(); renderDashboard(); toast("Demo-Werte wurden zurückgesetzt."); });
+  $("[data-reset-demo]")?.addEventListener("click", () => { const original = defaultProducts.find(x => x.id === selectedProduct().id); if (original) Object.assign(selectedProduct(), hydrateProduct(structuredClone(original))); persist(); renderDashboard(); toast("Demo-Werte wurden zurückgesetzt."); });
+}
+
+function updateLivePreview(score, points) {
+  $("#previewScore").textContent = score;
+  $("#previewGrade").textContent = gradeFor(score);
+  $("#previewPoints").textContent = points;
+  $("#scorePreview .score-circle").style.setProperty("--score", `${score}%`);
 }
 
 function bindProductionPage() {
   const form = $("#productionForm"); if (!form) return;
   const update = () => {
-    const data = new FormData(form); const renewable = Number(data.get("renewable")) || 0; const co2 = Number(data.get("co2")) || 0; const transport = { Bahn: 100, Schiff: 84, LKW: 58, Luftfracht: 12 }[data.get("transport")] || 50;
-    const score = Math.max(0, Math.min(100, Math.round(renewable * .42 + Math.max(0, 100 - co2 * 6) * .38 + transport * .20)));
-    $("#previewScore").textContent = score; $("#previewGrade").textContent = gradeFor(score); $("#scorePreview .score-circle").style.setProperty("--score", `${score}%`); form.dataset.liveScore = score;
+    const data = new FormData(form);
+    const draft = { ...selectedProduct(), country: data.get("country"), renewable: Number(data.get("renewable")), co2: Number(data.get("co2")), transport: data.get("transport"), transportDistance: Number(data.get("transportDistance")) };
+    const points = productionPoints(draft);
+    updateLivePreview(normalizedScore(points, 100), points);
   };
   form.addEventListener("input", update);
-  $("#saveProduction")?.addEventListener("click", () => { const p=selectedProduct(), data=new FormData(form); p.country=data.get("country");p.renewable=Number(data.get("renewable"));p.co2=Number(data.get("co2"));p.transport=data.get("transport");p.productionScore=Number(form.dataset.liveScore||p.productionScore);recalculateProduct(p);persist();renderDashboard();toast("Produktionsdaten und Score wurden gespeichert."); });
+  $("#saveProduction")?.addEventListener("click", () => { const p=selectedProduct(), data=new FormData(form); p.country=data.get("country");p.renewable=Number(data.get("renewable"));p.co2=Number(data.get("co2"));p.transport=data.get("transport");p.transportDistance=Number(data.get("transportDistance"));recalculateProduct(p);persist();renderDashboard();toast("Produktionskriterien und Score wurden gespeichert."); });
+}
+
+function bindSocialPage() {
+  const form = $("#socialForm"); if (!form) return;
+  const readDraft = () => ({ ...selectedProduct(), wageStandard: form.elements.wageStandard.value, iloWorkingHours: form.elements.iloWorkingHours.checked, certifiedSafety: form.elements.certifiedSafety.checked, noChildLabor: form.elements.noChildLabor.checked, transparentFacilities: form.elements.transparentFacilities.checked, laborViolations: form.elements.laborViolations.checked });
+  form.addEventListener("input", () => { const points = socialPoints(readDraft()); updateLivePreview(normalizedScore(points, 85), points); });
+  $("#saveSocial")?.addEventListener("click", () => { Object.assign(selectedProduct(), readDraft()); recalculateProduct(selectedProduct()); persist(); renderDashboard(); toast("Soziale Kriterien und Score wurden gespeichert."); });
 }
 
 function bindSupplyPage() {
   $$('[data-stage]').forEach(btn => btn.addEventListener("click", () => {
     const p = selectedProduct(), index = Number(btn.dataset.stage); p.supply[index] = !p.supply[index];
-    const verified = p.supply.filter(Boolean).length; p.transparencyScore = Math.min(100, verified * 18 + (p.certificates.length ? 8 : 0)); p.completeness = Math.min(100, Math.round((p.materialScore + p.productionScore + p.transparencyScore) / 3)); recalculateProduct(p); persist(); renderDashboard(); toast(p.supply[index] ? "Lieferstufe verifiziert." : "Verifizierung entfernt.");
+    p.completeness = Math.min(100, Math.round((p.materialScore + p.productionScore + p.socialScore + p.supply.filter(Boolean).length * 20) / 4)); recalculateProduct(p); persist(); renderDashboard(); toast(p.supply[index] ? "Lieferstufe verifiziert." : "Verifizierung entfernt.");
   }));
+  const form = $("#transparencyForm");
+  if (form) {
+    const readDraft = () => ({ ...selectedProduct(), materialOriginsTraceable: form.elements.materialOriginsTraceable.checked, digitalProductPassport: form.elements.digitalProductPassport.checked, partialSupplierData: form.elements.partialSupplierData.checked });
+    form.addEventListener("input", () => { const points = transparencyPoints(readDraft()); updateLivePreview(normalizedScore(points, 100), points); });
+    $("#saveTransparency")?.addEventListener("click", () => { Object.assign(selectedProduct(), readDraft()); recalculateProduct(selectedProduct()); persist(); renderDashboard(); toast("Transparenzkriterien und Score wurden gespeichert."); });
+  }
   $("#publishPassport")?.addEventListener("click", () => { selectedProduct().status = "Veröffentlicht"; persist(); renderDashboard(); toast("Digitaler Produktpass wurde veröffentlicht."); });
 }
 
@@ -333,6 +484,13 @@ function downloadCSV() {
 }
 
 function downloadLabel(p) {
+  const copy = gradeCopy(p.grade);
+  const grade = (x, y, title, score, color, fill) => `<circle cx="${x}" cy="${y}" r="24" fill="${fill}"/><text x="${x}" y="${y + 6}" text-anchor="middle" font-size="20">◇</text><text x="${x + 38}" y="${y - 6}" font-size="10" font-weight="700">${title}</text><text x="${x + 38}" y="${y + 27}" font-family="Georgia" font-size="34" font-weight="700" fill="${color}">${gradeFor(score)}</text>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="720" viewBox="0 0 420 720"><rect width="420" height="720" rx="18" fill="#fbfaf7"/><g fill="#111" font-family="Arial"><text x="210" y="54" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="6">WHAT YOU WEAR</text><path d="M152 127 210 92l58 35M210 92V76c0-13 18-9 18-24 0-9-7-14-17-14-9 0-16 6-16 15" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round"/><line x1="35" y1="147" x2="385" y2="147" stroke="#555"/><text x="210" y="177" text-anchor="middle" font-size="14" font-weight="700" letter-spacing="3">TRANSPARENZ LABEL</text><path d="M35 195h178v93a85 85 0 0 1-85 85H35z" fill="#3f6a3f"/><text x="118" y="333" text-anchor="middle" font-family="Georgia" font-size="120" fill="#fff">${p.grade}</text><text x="245" y="260" font-size="32" font-weight="700" fill="#3f6a3f">${copy[0]}</text><text x="245" y="291" font-size="16">${copy[1]}</text><line x1="35" y1="392" x2="385" y2="392" stroke="#777"/><line x1="210" y1="392" x2="210" y2="570" stroke="#777"/><line x1="35" y1="481" x2="385" y2="481" stroke="#777"/>${grade(66, 435, "MATERIALIEN &amp; ROHSTOFFE", p.materialScore, "#477745", "#dce2ca")}${grade(241, 435, "PRODUKTION &amp; CO₂", p.productionScore, "#efb94e", "#ffd284")}${grade(66, 524, "SOZIALE STANDARDS", p.socialScore, "#477745", "#dce2ca")}${grade(241, 524, "TRANSPARENZ &amp; LIEFERKETTE", p.transparencyScore, "#efb94e", "#ffd284")}<rect x="25" y="590" width="370" height="105" rx="15" fill="#f2efec"/><text x="53" y="655" font-size="42">♢</text><line x1="105" y1="608" x2="105" y2="678" stroke="#aaa"/><text x="125" y="625" font-size="11">Scanne den QR-Code</text><text x="125" y="643" font-size="11">für alle Details zu</text><text x="125" y="661" font-size="11">diesem Produkt.</text><g transform="translate(310 608)"><rect width="70" height="70" fill="#fff"/><path d="M2 2h21v21H2zm45 0h21v21H47zM2 47h21v21H2zM8 8v9h9V8zm45 0v9h9V8zM8 53v9h9v-9zM29 2h6v6h-6zm10 0h6v14h-6zM27 13h8v8h-8zm11 10h10v7H38zM27 27h7v12h-7zm14 7h8v8h-8zm12-7h7v12h-7zm9 4h6v15h-6zM27 43h11v7H27zm14 3h7v14h-7zm12-3h7v8h-7zm9 10h6v15h-6zm-34 1h8v14h-8zm12 9h17v5H40z" fill="#111"/></g></g></svg>`;
+  downloadBlob(svg, "image/svg+xml", `${slug(p.name)}-transparenzlabel.svg`);
+}
+
+function downloadLegacyLabel(p) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="650" viewBox="0 0 420 650"><rect width="420" height="650" rx="20" fill="#f7f4eb"/><text x="210" y="55" text-anchor="middle" font-family="Arial" font-size="12" letter-spacing="5" fill="#12231e">WHAT YOU WEAR</text><path d="M145 118 L210 80 L275 118 M210 80 V70 C210 55 232 58 232 40 C232 27 221 20 210 20 C198 20 190 27 188 37" fill="none" stroke="#12231e" stroke-width="2"/><line x1="45" y1="140" x2="375" y2="140" stroke="#12231e"/><text x="210" y="168" text-anchor="middle" font-family="Arial" font-weight="700" font-size="13" letter-spacing="3">TRANSPARENZ LABEL</text><rect x="50" y="200" width="140" height="140" fill="#245a49"/><text x="120" y="304" text-anchor="middle" font-family="Georgia" font-size="95" fill="white">${p.grade}</text><text x="220" y="250" font-family="Arial" font-weight="700" font-size="30" fill="#12231e">${p.score >= 76 ? "GUT" : "SOLIDE"}</text><text x="220" y="278" font-family="Arial" font-size="14" fill="#12231e">${p.score} / 100 Punkte</text><text x="220" y="305" font-family="Arial" font-size="12" fill="#58635e">${p.name}</text><line x1="45" y1="375" x2="375" y2="375" stroke="#bac0ba"/><g font-family="Arial" text-anchor="middle" fill="#12231e"><text x="80" y="420" font-size="11">MATERIAL</text><text x="80" y="460" font-family="Georgia" font-size="36">${gradeFor(p.materialScore)}</text><text x="170" y="420" font-size="11">PRODUKTION</text><text x="170" y="460" font-family="Georgia" font-size="36">${gradeFor(p.productionScore)}</text><text x="260" y="420" font-size="11">SOZIALES</text><text x="260" y="460" font-family="Georgia" font-size="36">${gradeFor(p.socialScore)}</text><text x="350" y="420" font-size="11">DATEN</text><text x="350" y="460" font-family="Georgia" font-size="36">${gradeFor(p.transparencyScore)}</text></g><line x1="45" y1="500" x2="375" y2="500" stroke="#bac0ba"/><rect x="50" y="530" width="70" height="70" fill="#12231e"/><path d="M57 537h20v20H57zM93 537h20v20H93zM57 573h20v20H57zM83 563h10v10H83zM103 573h10v20h-20v-10h10z" fill="white"/><text x="140" y="555" font-family="Arial" font-size="11">SCAN IT. KNOW IT.</text><text x="140" y="578" font-family="Arial" font-size="10" fill="#6c756f">${p.sku} · ${p.completeness}% Daten</text><text x="210" y="630" text-anchor="middle" font-family="Arial" font-size="9" fill="#6c756f">DEMO · KEINE AKKREDITIERTE ZERTIFIZIERUNG</text></svg>`;
   downloadBlob(svg, "image/svg+xml", `${slug(p.name)}-transparenzlabel.svg`);
 }
@@ -351,14 +509,14 @@ $$('[data-action="close-modal"]').forEach(btn => btn.addEventListener("click", c
 $("#productModal").addEventListener("click", e => { if (e.target === $("#productModal")) closeProductModal(); });
 $("#newProductForm").addEventListener("submit", e => {
   e.preventDefault(); const data = new FormData(e.currentTarget); const id = Math.max(0,...state.products.map(p=>p.id))+1;
-  const product = { id, name:data.get("name"), sku:data.get("sku"), category:data.get("category"), country:data.get("country"), score:50, grade:"D", status:"Entwurf", completeness:24, organic:0, recycled:0, certification:"Keine", renewable:0, co2:0, transport:"LKW", materialScore:40, productionScore:40, socialScore:60, transparencyScore:24, material:"Noch nicht erfasst", certificates:[], supply:[false,false,false,false,false] };
-  recalculateProduct(product); state.products.unshift(product); state.selectedProductId=id; persist(); closeProductModal(); e.currentTarget.reset(); state.currentPage="materials"; renderDashboard(); toast(`${product.name} wurde angelegt.`);
+  const product = hydrateProduct({ id, name:data.get("name"), sku:data.get("sku"), category:data.get("category"), country:data.get("country"), status:"Entwurf", completeness:0, organic:0, recycled:0, sustainablePercent:0, certification:"Keine", renewable:0, co2:0, transport:"LKW", transportDistance:6500, wageStandard:"none", iloWorkingHours:false, certifiedSafety:false, noChildLabor:false, transparentFacilities:false, laborViolations:false, materialOriginsTraceable:false, digitalProductPassport:false, partialSupplierData:false, material:"Noch nicht erfasst", certificates:[], supply:[false,false,false,false,false] });
+  state.products.unshift(product); state.selectedProductId=id; persist(); closeProductModal(); e.currentTarget.reset(); state.currentPage="materials"; renderDashboard(); toast(`${product.name} wurde angelegt.`);
 });
 
 $("#topAddProduct").addEventListener("click", showProductModal);
 $("#menuButton").addEventListener("click", e => { const header=$(".site-header"); header.classList.toggle("menu-open"); e.currentTarget.setAttribute("aria-expanded", String(header.classList.contains("menu-open"))); });
 $$('.desktop-nav a').forEach(a => a.addEventListener("click",()=>$(".site-header").classList.remove("menu-open")));
-$("#scanDemoButton")?.addEventListener("click", () => { $("#phoneShell").classList.add("scanned"); toast("Scan erfolgreich: Hoodie Classic · Score B · 82/100"); setTimeout(()=>$("#phoneShell").classList.remove("scanned"),2200); });
+$("#scanDemoButton")?.addEventListener("click", () => { $("#phoneShell").classList.add("scanned"); toast("Scan erfolgreich: Hoodie Classic · Score B · 88/100"); setTimeout(()=>$("#phoneShell").classList.remove("scanned"),2200); });
 $$('.score-row').forEach(row => row.addEventListener("click", () => { const key=row.dataset.score; $$('.score-row').forEach(r=>{const active=r===row;r.classList.toggle("active",active);r.querySelector("i").textContent=active?"−":"+"});$$('.score-detail').forEach(d=>d.classList.toggle("active",d.dataset.detail===key)); }));
 $$('.dash-nav button').forEach(btn => btn.addEventListener("click", () => { state.currentPage=btn.dataset.page; history.replaceState(null,"",`#dashboard-${state.currentPage}`); renderDashboard(); $("#dashboardSidebar").classList.remove("open"); }));
 $("#sidebarToggle").addEventListener("click",()=>$("#dashboardSidebar").classList.add("open"));
@@ -368,5 +526,5 @@ $("#searchFocus").addEventListener("click",()=>{state.currentPage="products";ren
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeProductModal(); $("#dashboardSidebar").classList.remove("open"); } });
 
 const requestedPage = location.hash.match(/^#dashboard-(.+)$/)?.[1];
-if (requestedPage && ["overview","products","materials","production","supply","analytics","reports"].includes(requestedPage)) openDashboard(requestedPage);
+if (requestedPage && ["overview","products","materials","production","social","supply","analytics","reports"].includes(requestedPage)) openDashboard(requestedPage);
 else updateGlobalMetrics();
