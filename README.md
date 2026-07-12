@@ -16,6 +16,7 @@ Danach `http://localhost:4173` im Browser öffnen.
 
 - lange responsive Landingpage mit Konzeptbildern und Primärquellen
 - interaktives Scan-Beispiel und Score-Erklärung
+- eigenständige mobile B2C-Produktseite für QR-Links mit aufklappbaren Score-Details
 - Dashboard mit Übersicht, Produktsuche und Filtern
 - Produktanlage mit lokal gespeicherten Demo-Daten
 - Live-Berechnung für Material- und Produktionsscore

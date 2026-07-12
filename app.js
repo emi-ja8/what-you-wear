@@ -60,6 +60,10 @@ function gradeCopy(grade) {
   }[grade];
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
+}
+
 function bool(value, fallback = false) {
   return typeof value === "boolean" ? value : fallback;
 }
@@ -139,6 +143,7 @@ function toast(message) {
 
 function openDashboard(page = "overview") {
   $("#landingView").hidden = true;
+  $("#consumerView").hidden = true;
   $("#dashboardView").hidden = false;
   document.body.style.overflow = "";
   state.currentPage = page;
@@ -149,8 +154,120 @@ function openDashboard(page = "overview") {
 
 function goHome() {
   $("#dashboardView").hidden = true;
+  $("#consumerView").hidden = true;
   $("#landingView").hidden = false;
+  document.title = "What You Wear — Ein Scan. Volle Transparenz.";
   history.replaceState(null, "", "#top");
+  window.scrollTo(0, 0);
+}
+
+function consumerScoreDefinition(product, key) {
+  const verifiedStages = (product.supply || []).filter(Boolean).length;
+  const definitions = {
+    material: {
+      label: "Umwelt", title: "Materialien & Rohstoffe", icon: "♧", weight: 35, score: product.materialScore,
+      description: "Bewertet werden Materialmix, nachhaltige Anteile und belegte Faserstandards.",
+      facts: [["Zusammensetzung", product.material], ["Zertifizierung", product.certification || "Kein Nachweis"], ["Bio-Anteil", `${product.organic} %`], ["Recyclinganteil", `${product.recycled} %`]]
+    },
+    production: {
+      label: "Herstellung", title: "Produktion & CO₂", icon: "◎", weight: 30, score: product.productionScore,
+      description: "Einbezogen werden Emissionen, Energiemix, Produktionsort und Transportweg.",
+      facts: [["Produktion", product.country], ["CO₂e pro Stück", `${Number(product.co2).toLocaleString("de-DE")} kg`], ["Erneuerbare Energie", `${product.renewable} %`], ["Transport", `${product.transport} · ${Number(product.transportDistance).toLocaleString("de-DE")} km`]]
+    },
+    social: {
+      label: "Menschen", title: "Soziale Standards", icon: "♙", weight: 25, score: product.socialScore,
+      description: "Geprüft werden Lohnstandard, Arbeitszeiten, Sicherheit und soziale Nachweise.",
+      facts: [["Lohnstandard", product.wageStandard === "living" ? "Living Wage belegt" : product.wageStandard === "minimum" ? "Mindestlohn belegt" : "Nicht belegt"], ["ILO-Arbeitszeiten", product.iloWorkingHours ? "Nachgewiesen" : "Nicht nachgewiesen"], ["Arbeitssicherheit", product.certifiedSafety ? "Zertifiziert" : "Noch offen"], ["Soziale Nachweise", `${product.certificates.length} Dokumente`]]
+    },
+    transparency: {
+      label: "Daten", title: "Transparenz & Lieferkette", icon: "◇", weight: 10, score: product.transparencyScore,
+      description: "Dieser Wert zeigt, wie vollständig und nachvollziehbar die Produktdaten belegt sind.",
+      facts: [["Daten vollständig", `${product.completeness} %`], ["Lieferstufen", `${verifiedStages} von 5 verifiziert`], ["Materialherkunft", product.materialOriginsTraceable ? "Nachvollziehbar" : "Teilweise offen"], ["Produktpass", product.digitalProductPassport ? "Vorhanden" : "Noch nicht vorhanden"]]
+    }
+  };
+  return definitions[key];
+}
+
+function consumerScoreCard(definition, key) {
+  return `<button class="consumer-score-card ${key}" data-consumer-score="${key}" aria-expanded="false">
+    <span class="consumer-score-top"><i class="consumer-score-icon">${definition.icon}</i><span class="consumer-score-weight">GEWICHTUNG ${definition.weight} %</span></span>
+    <h3>${definition.title}</h3>
+    <span class="consumer-score-value"><strong>${definition.score}</strong><span>/ 100</span></span>
+    <span class="consumer-score-grade">Note ${gradeFor(definition.score)} · ${gradeCopy(gradeFor(definition.score))[0]}</span>
+    <span class="consumer-score-bar"><i style="--value:${definition.score}%"></i></span>
+    <span class="consumer-score-more">Details ansehen <i>+</i></span>
+  </button>`;
+}
+
+function consumerScoreDetail(definition, key) {
+  return `<section class="consumer-score-detail" data-consumer-detail="${key}">
+    <div class="consumer-detail-title"><span>${definition.label.toUpperCase()} · ${definition.weight} % DES GESAMTSCORES</span><h3>${definition.title}</h3><p>${definition.description}</p></div>
+    <div class="consumer-detail-facts">${definition.facts.map(([label, value]) => `<div class="consumer-detail-fact"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("")}<p class="consumer-detail-note">Die Bewertung bezieht sich auf dieses konkrete Produkt. Fehlende oder nicht belegte Angaben werden im Score nicht als positiv gewertet.</p></div>
+  </section>`;
+}
+
+function renderConsumerView(product) {
+  const copy = gradeCopy(product.grade);
+  const definitions = Object.fromEntries(["material", "production", "social", "transparency"].map(key => [key, consumerScoreDefinition(product, key)]));
+  const scale = ["A", "B", "C", "D", "E"].map(grade => `<span class="${grade.toLowerCase()} ${grade === product.grade ? "active" : ""}">${grade}</span>`).join("");
+  $("#consumerContent").innerHTML = `
+    <section class="consumer-hero consumer-card">
+      <div class="consumer-product-panel" aria-label="Beiger Hoodie Classic">
+        <div class="consumer-art" aria-hidden="true"><i class="consumer-art-sleeve left"></i><i class="consumer-art-sleeve right"></i><i class="consumer-art-body"></i><i class="consumer-art-hood"></i><i class="consumer-art-string one"></i><i class="consumer-art-string two"></i><i class="consumer-art-pocket"></i></div>
+        <span class="consumer-scan-pill">✓ QR-PRODUKTPROFIL</span>
+      </div>
+      <div class="consumer-summary">
+        <span class="consumer-kicker">${escapeHtml(product.category)} · ${escapeHtml(product.sku)}</span>
+        <h1>${escapeHtml(product.name)}</h1>
+        <p class="consumer-product-meta">Produziert in ${escapeHtml(product.country)}</p>
+        <div class="consumer-overall"><div class="consumer-grade">${product.grade}</div><div class="consumer-overall-copy"><small>NACHHALTIGKEITSSCORE</small><strong>${product.score} / 100</strong><p>${copy[0]} · ${copy[1]}</p></div></div>
+        <div class="consumer-data-status"><i></i><span>Daten zu <b>${product.completeness} %</b> vollständig · Stand Juli 2026</span></div>
+      </div>
+    </section>
+    <section class="consumer-message consumer-card"><span class="consumer-message-icon">♧</span><div><b>Das bedeutet dein Ergebnis</b><p>Der Score bündelt vier Bereiche. Öffne die Karten, um zu sehen, welche Produktdaten in die Bewertung eingeflossen sind.</p></div><span>↓</span></section>
+    <section class="consumer-section">
+      <div class="consumer-section-head"><div><span>Score im Überblick</span><h2>Vier Perspektiven. Ein Ergebnis.</h2></div><p>Jeder Teilscore bleibt sichtbar, damit ein guter Gesamtwert keine Schwäche verdeckt.</p></div>
+      <div class="consumer-score-grid">${Object.entries(definitions).map(([key, definition]) => consumerScoreCard(definition, key)).join("")}${Object.entries(definitions).map(([key, definition]) => consumerScoreDetail(definition, key)).join("")}</div>
+    </section>
+    <section class="consumer-section">
+      <div class="consumer-section-head"><div><span>Auf einen Blick</span><h2>Die wichtigsten Produktwerte.</h2></div></div>
+      <div class="consumer-facts consumer-card">
+        <article class="consumer-fact"><span>CO₂</span><small>CO₂-Fußabdruck</small><strong>${Number(product.co2).toLocaleString("de-DE")} kg</strong><em>CO₂e pro Produkt</em></article>
+        <article class="consumer-fact"><span>☼</span><small>Erneuerbare Energie</small><strong>${product.renewable} %</strong><em>in der Produktion</em></article>
+        <article class="consumer-fact"><span>⌁</span><small>Transportweg</small><strong>${Number(product.transportDistance).toLocaleString("de-DE")} km</strong><em>hauptsächlich per ${escapeHtml(product.transport)}</em></article>
+        <article class="consumer-fact"><span>✓</span><small>Datenqualität</small><strong>${product.completeness} %</strong><em>vollständig belegt</em></article>
+      </div>
+    </section>
+    <section class="consumer-section consumer-method consumer-card">
+      <div class="consumer-method-copy"><span>SO WIRD BEWERTET</span><h2>Transparent gewichtet.</h2><p>Der Gesamtscore ist ein gewichteter Mittelwert der vier sichtbaren Bereiche. Er dient als verständliche Orientierung und ersetzt keine unabhängige Produktzertifizierung.</p></div>
+      <div class="consumer-method-scale">
+        <div class="consumer-weight-row"><span>Materialien</span><i><b style="width:100%"></b></i><strong>35 %</strong></div>
+        <div class="consumer-weight-row"><span>Produktion & CO₂</span><i><b style="width:86%"></b></i><strong>30 %</strong></div>
+        <div class="consumer-weight-row"><span>Soziale Standards</span><i><b style="width:71%"></b></i><strong>25 %</strong></div>
+        <div class="consumer-weight-row"><span>Transparenz</span><i><b style="width:29%"></b></i><strong>10 %</strong></div>
+        <div class="consumer-scale" aria-label="Bewertungsskala von A bis E">${scale}</div><div class="consumer-scale-note"><span>A · 90–100</span><span>E · 0–39</span></div>
+      </div>
+    </section>
+    <p class="consumer-disclaimer"><span>ⓘ</span><span><b>Wichtig:</b> What You Wear ist ein interaktiver Hochschulprototyp und aktuell kein akkreditiertes Zertifizierungssystem. Der Score basiert auf den für dieses Produkt hinterlegten Demo-Daten und Nachweisen.</span></p>
+    <footer class="consumer-footer"><b>WHAT YOU WEAR</b><span>Know what you wear.</span></footer>`;
+
+  $$('[data-consumer-score]').forEach(button => button.addEventListener("click", () => {
+    const key = button.dataset.consumerScore;
+    const willOpen = button.getAttribute("aria-expanded") !== "true";
+    $$('[data-consumer-score]').forEach(other => { other.setAttribute("aria-expanded", "false"); other.querySelector(".consumer-score-more i").textContent = "+"; });
+    $$('[data-consumer-detail]').forEach(detail => detail.classList.remove("active"));
+    if (willOpen) { button.setAttribute("aria-expanded", "true"); button.querySelector(".consumer-score-more i").textContent = "−"; $(`[data-consumer-detail="${key}"]`).classList.add("active"); }
+  }));
+}
+
+function openConsumer(product = selectedProduct()) {
+  state.selectedProductId = product.id;
+  $("#landingView").hidden = true;
+  $("#dashboardView").hidden = true;
+  $("#consumerView").hidden = false;
+  renderConsumerView(product);
+  document.title = `${product.name} · What You Wear Score`;
+  history.replaceState(null, "", `#product-${product.sku}`);
   window.scrollTo(0, 0);
 }
 
@@ -345,6 +462,7 @@ function renderReports() {
     <div class="reports-grid"><section class="editor-card"><h2>Verfügbare Exporte</h2><p>Demo-Downloads werden lokal aus den eingegebenen Daten erzeugt.</p><div class="report-list">
       <div class="report-row"><span>▤</span><div><b>Produktdaten-Bericht</b><small>HTML · aktueller Stand</small></div><button data-download="report">Erstellen</button></div>
       <div class="report-row"><span>⌗</span><div><b>Transparenzlabel</b><small>SVG · druckfähige Vektordatei</small></div><button data-download="label">Download</button></div>
+      <div class="report-row"><span>↗</span><div><b>B2C-Webansicht</b><small>QR-Ziel · Score und transparente Details</small></div><button data-open-consumer>Öffnen</button></div>
       <div class="report-row"><span>{ }</span><div><b>Produktpass-Daten</b><small>JSON · maschinenlesbar</small></div><button data-download="product-json">Download</button></div>
       <div class="report-row"><span>▦</span><div><b>Portfolio-Übersicht</b><small>CSV · ${state.products.length} Produkte</small></div><button data-export="csv">Download</button></div>
     </div></section>
@@ -374,6 +492,7 @@ function bindCurrentPage() {
   $$('[data-edit-product]').forEach(btn => btn.addEventListener("click", () => { state.selectedProductId = Number(btn.dataset.editProduct); state.currentPage = "materials"; renderDashboard(); }));
   $$('[data-export]').forEach(btn => btn.addEventListener("click", () => btn.dataset.export === "csv" ? downloadCSV() : downloadJSON(state.products, "what-you-wear-portfolio.json")));
   $$('[data-download]').forEach(btn => btn.addEventListener("click", () => handleDownload(btn.dataset.download)));
+  $$('[data-open-consumer]').forEach(btn => btn.addEventListener("click", () => openConsumer(selectedProduct())));
 
   const search = $("#productSearch");
   if (search) search.addEventListener("input", e => { state.productSearch = e.target.value; renderProductsInPlace(); });
@@ -505,6 +624,7 @@ function slug(value) { return value.toLowerCase().replace(/[^a-z0-9äöüß]+/g,
 // Global interactions
 $$('[data-action="open-dashboard"]').forEach(btn => btn.addEventListener("click", () => openDashboard("overview")));
 $$('[data-action="go-home"]').forEach(btn => btn.addEventListener("click", e => { e.preventDefault(); goHome(); }));
+$$('[data-action="consumer-home"]').forEach(btn => btn.addEventListener("click", e => { e.preventDefault(); goHome(); }));
 $$('[data-action="close-modal"]').forEach(btn => btn.addEventListener("click", closeProductModal));
 $("#productModal").addEventListener("click", e => { if (e.target === $("#productModal")) closeProductModal(); });
 $("#newProductForm").addEventListener("submit", e => {
@@ -516,7 +636,7 @@ $("#newProductForm").addEventListener("submit", e => {
 $("#topAddProduct").addEventListener("click", showProductModal);
 $("#menuButton").addEventListener("click", e => { const header=$(".site-header"); header.classList.toggle("menu-open"); e.currentTarget.setAttribute("aria-expanded", String(header.classList.contains("menu-open"))); });
 $$('.desktop-nav a').forEach(a => a.addEventListener("click",()=>$(".site-header").classList.remove("menu-open")));
-$("#scanDemoButton")?.addEventListener("click", () => { $("#phoneShell").classList.add("scanned"); toast("Scan erfolgreich: Hoodie Classic · Score B · 88/100"); setTimeout(()=>$("#phoneShell").classList.remove("scanned"),2200); });
+$("#scanDemoButton")?.addEventListener("click", () => openConsumer(state.products.find(product => product.id === 1) || state.products[0]));
 $$('.score-row').forEach(row => row.addEventListener("click", () => { const key=row.dataset.score; $$('.score-row').forEach(r=>{const active=r===row;r.classList.toggle("active",active);r.querySelector("i").textContent=active?"−":"+"});$$('.score-detail').forEach(d=>d.classList.toggle("active",d.dataset.detail===key)); }));
 $$('.dash-nav button').forEach(btn => btn.addEventListener("click", () => { state.currentPage=btn.dataset.page; history.replaceState(null,"",`#dashboard-${state.currentPage}`); renderDashboard(); $("#dashboardSidebar").classList.remove("open"); }));
 $("#sidebarToggle").addEventListener("click",()=>$("#dashboardSidebar").classList.add("open"));
@@ -525,6 +645,9 @@ $("#searchFocus").addEventListener("click",()=>{state.currentPage="products";ren
 
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeProductModal(); $("#dashboardSidebar").classList.remove("open"); } });
 
+const requestedProductSku = location.hash.match(/^#product-(.+)$/)?.[1];
+const requestedProduct = requestedProductSku ? state.products.find(product => product.sku === decodeURIComponent(requestedProductSku)) : null;
 const requestedPage = location.hash.match(/^#dashboard-(.+)$/)?.[1];
-if (requestedPage && ["overview","products","materials","production","social","supply","analytics","reports"].includes(requestedPage)) openDashboard(requestedPage);
+if (requestedProduct) openConsumer(requestedProduct);
+else if (requestedPage && ["overview","products","materials","production","social","supply","analytics","reports"].includes(requestedPage)) openDashboard(requestedPage);
 else updateGlobalMetrics();
