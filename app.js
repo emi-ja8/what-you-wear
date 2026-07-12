@@ -2,16 +2,16 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const SCORE_WEIGHTS = { material: .35, production: .30, social: .25, transparency: .10 };
-const SCORE_VERSION = 2;
+const SCORE_VERSION = 3;
 const EUROPEAN_PRODUCTION_COUNTRIES = ["Deutschland", "Italien", "Portugal"];
 
 const defaultProducts = [
-  { id: 1, name: "Hoodie Classic", sku: "SKU-001-HOOD-CL", category: "Oberteile", country: "Portugal", score: 82, grade: "B", status: "Veröffentlicht", completeness: 91, organic: 95, recycled: 5, certification: "GOTS", renewable: 75, co2: 6, transport: "LKW", materialScore: 92, productionScore: 80, socialScore: 68, transparencyScore: 91, material: "95 % Bio-Baumwolle · 5 % recyceltes Polyester", certificates: ["GOTS-Zertifikat_2026.pdf", "Social-Audit_Portugal.pdf"], supply: [true, true, true, true, false] },
-  { id: 2, name: "Essential T-Shirt", sku: "SKU-002-TEE-ES", category: "Oberteile", country: "Portugal", score: 91, grade: "A", status: "Veröffentlicht", completeness: 96, organic: 100, recycled: 0, certification: "GOTS", renewable: 86, co2: 3.2, transport: "Bahn", materialScore: 98, productionScore: 90, socialScore: 84, transparencyScore: 96, material: "100 % Bio-Baumwolle", certificates: ["GOTS-Essential.pdf"], supply: [true, true, true, true, true] },
-  { id: 3, name: "Straight Denim", sku: "SKU-003-DENIM-ST", category: "Hosen", country: "Türkei", score: 67, grade: "C", status: "In Prüfung", completeness: 74, organic: 42, recycled: 18, certification: "OEKO-TEX", renewable: 38, co2: 12.4, transport: "LKW", materialScore: 68, productionScore: 59, socialScore: 71, transparencyScore: 74, material: "82 % Baumwolle · 18 % recycelte Baumwolle", certificates: ["OEKO-TEX-Denim.pdf"], supply: [true, true, true, false, false] },
-  { id: 4, name: "Light Field Jacket", sku: "SKU-004-JKT-LF", category: "Jacken", country: "Italien", score: 78, grade: "B", status: "Veröffentlicht", completeness: 88, organic: 55, recycled: 35, certification: "GRS", renewable: 70, co2: 8.1, transport: "Bahn", materialScore: 82, productionScore: 76, socialScore: 73, transparencyScore: 88, material: "55 % Bio-Baumwolle · 35 % Recyclingfaser · 10 % Elasthan", certificates: ["GRS-Jacket.pdf"], supply: [true, true, true, true, false] },
-  { id: 5, name: "Everyday Cap", sku: "SKU-005-CAP-EV", category: "Accessoires", country: "Deutschland", score: 81, grade: "B", status: "Entwurf", completeness: 69, organic: 80, recycled: 20, certification: "Keine", renewable: 92, co2: 2.4, transport: "Bahn", materialScore: 84, productionScore: 90, socialScore: 70, transparencyScore: 69, material: "80 % Bio-Baumwolle · 20 % recycelte Baumwolle", certificates: [], supply: [true, true, false, false, false] },
-  { id: 6, name: "Flow Dress", sku: "SKU-006-DRS-FL", category: "Oberteile", country: "Italien", score: 72, grade: "C", status: "In Prüfung", completeness: 79, organic: 0, recycled: 45, certification: "OEKO-TEX", renewable: 62, co2: 7.5, transport: "LKW", materialScore: 70, productionScore: 72, socialScore: 67, transparencyScore: 79, material: "55 % TENCEL™ · 45 % recyceltes Polyester", certificates: ["OEKO-TEX-Flow.pdf"], supply: [true, true, true, false, true] }
+  { id: 1, name: "Hoodie Classic", sku: "SKU-001-HOOD-CL", category: "Oberteile", country: "Portugal", score: 82, grade: "B", status: "Veröffentlicht", completeness: 91, organic: 95, recycled: 5, polyesterPercent: 5, certification: "GOTS", renewable: 75, co2: 6, transport: "LKW", materialScore: 92, productionScore: 80, socialScore: 68, transparencyScore: 91, material: "95 % Bio-Baumwolle · 5 % recyceltes Polyester", certificates: ["GOTS-Zertifikat_2026.pdf", "Social-Audit_Portugal.pdf"], supply: [true, true, true, true, false] },
+  { id: 2, name: "Essential T-Shirt", sku: "SKU-002-TEE-ES", category: "Oberteile", country: "Portugal", score: 91, grade: "A", status: "Veröffentlicht", completeness: 96, organic: 100, recycled: 0, polyesterPercent: 0, certification: "GOTS", renewable: 86, co2: 3.2, transport: "Bahn", materialScore: 98, productionScore: 90, socialScore: 84, transparencyScore: 96, material: "100 % Bio-Baumwolle", certificates: ["GOTS-Essential.pdf"], supply: [true, true, true, true, true] },
+  { id: 3, name: "Straight Denim", sku: "SKU-003-DENIM-ST", category: "Hosen", country: "Türkei", score: 67, grade: "C", status: "In Prüfung", completeness: 74, organic: 42, recycled: 18, polyesterPercent: 0, certification: "OEKO-TEX", renewable: 38, co2: 12.4, transport: "LKW", materialScore: 68, productionScore: 59, socialScore: 71, transparencyScore: 74, material: "82 % Baumwolle · 18 % recycelte Baumwolle", certificates: ["OEKO-TEX-Denim.pdf"], supply: [true, true, true, false, false] },
+  { id: 4, name: "Light Field Jacket", sku: "SKU-004-JKT-LF", category: "Jacken", country: "Italien", score: 78, grade: "B", status: "Veröffentlicht", completeness: 88, organic: 55, recycled: 35, polyesterPercent: 0, certification: "GRS", renewable: 70, co2: 8.1, transport: "Bahn", materialScore: 82, productionScore: 76, socialScore: 73, transparencyScore: 88, material: "55 % Bio-Baumwolle · 35 % Recyclingfaser · 10 % Elasthan", certificates: ["GRS-Jacket.pdf"], supply: [true, true, true, true, false] },
+  { id: 5, name: "Everyday Cap", sku: "SKU-005-CAP-EV", category: "Accessoires", country: "Deutschland", score: 81, grade: "B", status: "Entwurf", completeness: 69, organic: 80, recycled: 20, polyesterPercent: 0, certification: "Keine", renewable: 92, co2: 2.4, transport: "Bahn", materialScore: 84, productionScore: 90, socialScore: 70, transparencyScore: 69, material: "80 % Bio-Baumwolle · 20 % recycelte Baumwolle", certificates: [], supply: [true, true, false, false, false] },
+  { id: 6, name: "Flow Dress", sku: "SKU-006-DRS-FL", category: "Oberteile", country: "Italien", score: 72, grade: "C", status: "In Prüfung", completeness: 79, organic: 0, recycled: 45, polyesterPercent: 45, certification: "OEKO-TEX", renewable: 62, co2: 7.5, transport: "LKW", materialScore: 70, productionScore: 72, socialScore: 67, transparencyScore: 79, material: "55 % TENCEL™ · 45 % recyceltes Polyester", certificates: ["OEKO-TEX-Flow.pdf"], supply: [true, true, true, false, true] }
 ];
 
 const state = {
@@ -68,12 +68,25 @@ function bool(value, fallback = false) {
   return typeof value === "boolean" ? value : fallback;
 }
 
+function polyesterRule(percent) {
+  const value = Math.max(0, Number(percent) || 0);
+  if (value < 10) return { band: "under-10", label: "Weniger als 10 % Polyesterfasern", penalty: 5 };
+  if (value < 20) return { band: "under-20", label: "Weniger als 20 % Polyesterfasern", penalty: 10 };
+  return { band: "over-20", label: "Mehr als 20 % Polyesterfasern", penalty: 20 };
+}
+
+function polyesterPenalty(percent) {
+  return polyesterRule(percent).penalty;
+}
+
 function hydrateProduct(product) {
   const p = { ...product };
   p.scoreVersion = SCORE_VERSION;
   p.sustainablePercent = Number.isFinite(p.sustainablePercent) ? p.sustainablePercent : Math.min(100, (Number(p.organic) || 0) + (Number(p.recycled) || 0));
   p.recycledPolyester = bool(p.recycledPolyester, /recyceltes polyester/i.test(p.material || ""));
   p.highVirginPolyester = bool(p.highVirginPolyester);
+  const polyesterMatch = String(p.material || "").match(/(\d+(?:[.,]\d+)?)\s*%\s*(?:recyceltes\s+)?polyester/i);
+  p.polyesterPercent = Number.isFinite(Number(p.polyesterPercent)) ? Number(p.polyesterPercent) : polyesterMatch ? Number(polyesterMatch[1].replace(",", ".")) : p.highVirginPolyester ? 25 : p.recycledPolyester ? 5 : 0;
   p.transportDistance = Number.isFinite(p.transportDistance) ? p.transportDistance : ({ Deutschland: 420, Italien: 1050, Portugal: 1800, Türkei: 2300 }[p.country] || 6500);
   p.wageStandard = p.wageStandard || ([1, 2, 4].includes(p.id) ? "living" : "minimum");
   p.iloWorkingHours = bool(p.iloWorkingHours, true);
@@ -91,7 +104,7 @@ function hydrateProduct(product) {
 function materialPoints(product) {
   const sustainable = Number(product.sustainablePercent) || 0;
   const base = sustainable >= 80 ? 60 : sustainable >= 50 ? 40 : sustainable >= 20 ? 20 : 0;
-  return base + (product.certification && product.certification !== "Keine" ? 20 : 0) - (product.recycledPolyester ? 5 : 0) - (product.highVirginPolyester ? 20 : 0);
+  return base + (product.certification && product.certification !== "Keine" ? 20 : 0) - polyesterPenalty(product.polyesterPercent);
 }
 
 function productionPoints(product) {
@@ -167,7 +180,7 @@ function consumerScoreDefinition(product, key) {
     material: {
       label: "Umwelt", title: "Materialien & Rohstoffe", icon: "♧", weight: 35, score: product.materialScore,
       description: "Bewertet werden Materialmix, nachhaltige Anteile und belegte Faserstandards.",
-      facts: [["Zusammensetzung", product.material], ["Zertifizierung", product.certification || "Kein Nachweis"], ["Bio-Anteil", `${product.organic} %`], ["Recyclinganteil", `${product.recycled} %`]]
+      facts: [["Zusammensetzung", product.material], ["Zertifizierung", product.certification || "Kein Nachweis"], ["Bio-Anteil", `${product.organic} %`], ["Polyesterfasern", `${product.polyesterPercent} % · −${polyesterPenalty(product.polyesterPercent)} Punkte`]]
     },
     production: {
       label: "Herstellung", title: "Produktion & CO₂", icon: "◎", weight: 30, score: product.productionScore,
@@ -370,8 +383,7 @@ function renderMaterials() {
           <label>Recyclinganteil in %<input type="number" min="0" max="100" name="recycled" value="${p.recycled}" /></label>
           <label>Hauptzertifizierung<select name="certification">${["Keine","GOTS","OEKO-TEX","GRS","EU Ecolabel"].map(c => `<option ${c===p.certification?"selected":""}>${c}</option>`).join("")}</select></label>
           <label>Herkunft Rohfaser<select name="origin"><option>Türkei</option><option>Portugal</option><option>Indien</option><option>Deutschland</option></select></label>
-          ${criterionCheckbox("recycledPolyester", "Recycelter Polyesteranteil", -5, p.recycledPolyester, "Abzug laut Kriterienkatalog")}
-          ${criterionCheckbox("highVirginPolyester", "Hoher Anteil neuer Polyesterfasern", -20, p.highVirginPolyester, "Abzug laut Kriterienkatalog")}
+          <label>Polyesterfasern in %<input type="number" min="0" max="100" step="0.1" name="polyesterPercent" value="${p.polyesterPercent}" /><small class="field-help">unter 10 %: −5 · unter 20 %: −10 · mehr als 20 %: −20 Punkte</small></label>
           <div class="form-divider"></div><span class="form-section-title">Nachweise</span>
           <label class="upload-zone full"><input type="file" id="certificateUpload" accept=".pdf,.jpg,.jpeg,.png" /><span>⇧</span><b>Zertifikat hochladen</b><small>PDF, JPG oder PNG · max. 10 MB</small></label>
         </form>
@@ -524,7 +536,7 @@ function bindMaterialPage() {
   if (!form) return;
   const updatePreview = () => {
     const data = new FormData(form);
-    const draft = { ...selectedProduct(), sustainablePercent: Number(data.get("sustainablePercent")), certification: data.get("certification"), recycledPolyester: form.elements.recycledPolyester.checked, highVirginPolyester: form.elements.highVirginPolyester.checked };
+    const draft = { ...selectedProduct(), sustainablePercent: Number(data.get("sustainablePercent")), certification: data.get("certification"), polyesterPercent: Number(data.get("polyesterPercent")) };
     const points = materialPoints(draft);
     updateLivePreview(normalizedScore(points, 80), points);
   };
@@ -537,16 +549,17 @@ function bindMaterialPage() {
   });
   $("#saveMaterial")?.addEventListener("click", () => {
     const p = selectedProduct(); const data = new FormData(form);
-    p.material = data.get("material"); p.sustainablePercent = Number(data.get("sustainablePercent")); p.organic = Number(data.get("organic")); p.recycled = Number(data.get("recycled")); p.certification = data.get("certification"); p.recycledPolyester = form.elements.recycledPolyester.checked; p.highVirginPolyester = form.elements.highVirginPolyester.checked; recalculateProduct(p); persist(); renderDashboard(); toast("Materialkriterien und Score wurden gespeichert.");
+    p.material = data.get("material"); p.sustainablePercent = Number(data.get("sustainablePercent")); p.organic = Number(data.get("organic")); p.recycled = Number(data.get("recycled")); p.polyesterPercent = Number(data.get("polyesterPercent")); p.certification = data.get("certification"); p.recycledPolyester = false; p.highVirginPolyester = false; recalculateProduct(p); persist(); renderDashboard(); toast("Materialkriterien und Polyesterabzug wurden gespeichert.");
   });
   $("[data-reset-demo]")?.addEventListener("click", () => { const original = defaultProducts.find(x => x.id === selectedProduct().id); if (original) Object.assign(selectedProduct(), hydrateProduct(structuredClone(original))); persist(); renderDashboard(); toast("Demo-Werte wurden zurückgesetzt."); });
 }
 
-function updateLivePreview(score, points) {
+function updateLivePreview(score, points, penalty = null) {
   $("#previewScore").textContent = score;
   $("#previewGrade").textContent = gradeFor(score);
   $("#previewPoints").textContent = points;
   $("#scorePreview .score-circle").style.setProperty("--score", `${score}%`);
+  if (penalty !== null && $("#previewPenalty")) $("#previewPenalty").textContent = `−${penalty} Punkte`;
 }
 
 function bindProductionPage() {
